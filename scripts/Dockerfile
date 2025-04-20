@@ -1,21 +1,9 @@
-# Build frontend dist.
-FROM node:20-alpine AS frontend
-WORKDIR /frontend-build
-
-COPY . .
-
-WORKDIR /frontend-build/web
-
-RUN npm install -g pnpm
-RUN pnpm i --frozen-lockfile
-RUN pnpm build
-
-# Build backend exec file.
 FROM golang:1.24-alpine AS backend
 WORKDIR /backend-build
 
 COPY . .
-COPY --from=frontend /frontend-build/web/dist /backend-build/server/router/frontend/dist
+# Please build frontend first, so that the static files are available.
+# Refer to `pnpm release` in package.json for the build command.
 
 RUN go build -o memos ./bin/memos/main.go
 
@@ -27,7 +15,7 @@ RUN apk add --no-cache tzdata
 ENV TZ="UTC"
 
 COPY --from=backend /backend-build/memos /usr/local/memos/
-COPY entrypoint.sh /usr/local/memos/
+COPY ./scripts/entrypoint.sh /usr/local/memos/
 
 EXPOSE 5230
 

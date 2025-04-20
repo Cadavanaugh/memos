@@ -55,6 +55,7 @@ interface State {
   isUploadingResource: boolean;
   isRequesting: boolean;
   isComposing: boolean;
+  isDraggingFile: boolean;
 }
 
 const MemoEditor = observer((props: Props) => {
@@ -72,6 +73,7 @@ const MemoEditor = observer((props: Props) => {
     isUploadingResource: false,
     isRequesting: false,
     isComposing: false,
+    isDraggingFile: false,
   });
   const [displayTime, setDisplayTime] = useState<Date | undefined>();
   const [hasContent, setHasContent] = useState<boolean>(false);
@@ -223,6 +225,12 @@ const MemoEditor = observer((props: Props) => {
     } catch (error: any) {
       console.error(error);
       toast.error(error.details);
+      setState((state) => {
+        return {
+          ...state,
+          isUploadingResource: false,
+        };
+      });
     }
   };
 
@@ -254,8 +262,34 @@ const MemoEditor = observer((props: Props) => {
   const handleDropEvent = async (event: React.DragEvent) => {
     if (event.dataTransfer && event.dataTransfer.files.length > 0) {
       event.preventDefault();
+      setState((prevState) => ({
+        ...prevState,
+        isDraggingFile: false,
+      }));
+
       await uploadMultiFiles(event.dataTransfer.files);
     }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    if (event.dataTransfer && event.dataTransfer.types.includes("Files")) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      if (!state.isDraggingFile) {
+        setState((prevState) => ({
+          ...prevState,
+          isDraggingFile: true,
+        }));
+      }
+    }
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setState((prevState) => ({
+      ...prevState,
+      isDraggingFile: false,
+    }));
   };
 
   const handlePasteEvent = async (event: React.ClipboardEvent) => {
@@ -385,6 +419,7 @@ const MemoEditor = observer((props: Props) => {
         resourceList: [],
         relationList: [],
         location: undefined,
+        isDraggingFile: false,
       };
     });
   };
@@ -437,10 +472,16 @@ const MemoEditor = observer((props: Props) => {
       <div
         className={`${
           className ?? ""
-        } relative w-full flex flex-col justify-start items-start bg-white dark:bg-zinc-800 px-4 pt-4 rounded-lg border border-gray-200 dark:border-zinc-700`}
+        } relative w-full flex flex-col justify-start items-start bg-white dark:bg-zinc-800 px-4 pt-4 rounded-lg border ${
+          state.isDraggingFile
+            ? "border-dashed border-gray-400 dark:border-primary-400 cursor-copy"
+            : "border-gray-200 dark:border-zinc-700 cursor-auto"
+        }`}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onDrop={handleDropEvent}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onFocus={handleEditorFocus}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
@@ -465,8 +506,8 @@ const MemoEditor = observer((props: Props) => {
           <div className="flex flex-row justify-start items-center opacity-80 dark:opacity-60 -space-x-1">
             <TagSelector editorRef={editorRef} />
             <MarkdownMenu editorRef={editorRef} />
-            <UploadResourceButton />
             <RecordAudioButton />
+            <UploadResourceButton isUploadingResource={state.isUploadingResource} />
             <AddMemoRelationPopover editorRef={editorRef} />
             {workspaceMemoRelatedSetting.enableLocation && (
               <LocationSelector
