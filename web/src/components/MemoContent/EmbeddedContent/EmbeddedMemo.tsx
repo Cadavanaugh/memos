@@ -24,6 +24,7 @@ const EmbeddedMemo = ({ resourceId: uid, params: paramsStr }: Props) => {
   const memoName = `memos/${uid}`;
   const memo = memoStore.getMemoByName(memoName);
   const isMemoOlderThan24Hours = Date.now() - memo.displayTime!.getTime() > 1000 * 60 * 60 * 24;
+  const isMemoOlderThanAYear = Date.now() - memo.displayTime!.getTime() > 1000 * 60 * 60 * 24 * 365;
 
   useEffect(() => {
     memoStore.getOrFetchMemoByName(memoName).finally(() => loadingState.setFinish());
@@ -71,7 +72,16 @@ const EmbeddedMemo = ({ resourceId: uid, params: paramsStr }: Props) => {
     <div className="relative flex flex-col justify-start items-start w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-700 hover:shadow">
       <div className="w-full mb-1 flex flex-row justify-between items-center text-gray-400 dark:text-gray-500">
         <div className="text-sm leading-5 select-none">
-          {isMemoOlderThan24Hours ? (
+          {isMemoOlderThanAYear ? (
+            memo.displayTime?.toLocaleString(i18n.resolvedLanguage, {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              hour: "numeric",
+              minute: "numeric",
+              year: "numeric"
+            })
+          ) : isMemoOlderThan24Hours ? (
             memo.displayTime?.toLocaleString(i18n.resolvedLanguage, {
               weekday: "short",
               day: "numeric",
