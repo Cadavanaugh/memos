@@ -1,12 +1,14 @@
 import copy from "copy-to-clipboard";
 import i18n from "i18next";
 import { ArrowUpRightIcon } from "lucide-react";
+import { observer } from "mobx-react-lite";
 import { useContext, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import MemoResourceListView from "@/components/MemoResourceListView";
 import useLoading from "@/hooks/useLoading";
-import { extractMemoIdFromName, useMemoStore } from "@/store/v1";
+import { extractMemoIdFromName } from "@/store/common";
+import { memoStore } from "@/store/v2";
 import { cn } from "@/utils";
 import MemoContent from "..";
 import { RendererContext } from "../types";
@@ -17,10 +19,9 @@ interface Props {
   params: string;
 }
 
-const EmbeddedMemo = ({ resourceId: uid, params: paramsStr }: Props) => {
+const EmbeddedMemo = observer(({ resourceId: uid, params: paramsStr }: Props) => {
   const context = useContext(RendererContext);
   const loadingState = useLoading();
-  const memoStore = useMemoStore();
   const memoName = `memos/${uid}`;
   const memo = memoStore.getMemoByName(memoName);
   const isMemoOlderThan24Hours = Date.now() - memo.displayTime!.getTime() > 1000 * 60 * 60 * 24;
@@ -108,6 +109,6 @@ const EmbeddedMemo = ({ resourceId: uid, params: paramsStr }: Props) => {
       {contentNode}
     </div>
   );
-};
+});
 
 export default EmbeddedMemo;

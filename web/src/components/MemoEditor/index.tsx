@@ -1,4 +1,3 @@
-import { Select, Option, Divider } from "@mui/joy";
 import { Button } from "@usememos/mui";
 import { isEqual } from "lodash-es";
 import { LoaderIcon, SendIcon } from "lucide-react";
@@ -13,20 +12,20 @@ import { TAB_SPACE_WIDTH } from "@/helpers/consts";
 import { isValidUrl } from "@/helpers/utils";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { useMemoStore, useResourceStore } from "@/store/v1";
-import { userStore, workspaceStore } from "@/store/v2";
+import { memoStore, resourceStore, userStore, workspaceStore } from "@/store/v2";
 import { Location, Memo, MemoRelation, MemoRelation_Type, Visibility } from "@/types/proto/api/v1/memo_service";
 import { Resource } from "@/types/proto/api/v1/resource_service";
 import { UserSetting } from "@/types/proto/api/v1/user_service";
+import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
-import { convertVisibilityFromString, convertVisibilityToString } from "@/utils/memo";
-import VisibilityIcon from "../VisibilityIcon";
+import { convertVisibilityFromString } from "@/utils/memo";
 import AddMemoRelationPopover from "./ActionButton/AddMemoRelationPopover";
 import LocationSelector from "./ActionButton/LocationSelector";
 import MarkdownMenu from "./ActionButton/MarkdownMenu";
 import RecordAudioButton from "./ActionButton/RecordAudioButton";
 import TagSelector from "./ActionButton/TagSelector";
 import UploadResourceButton from "./ActionButton/UploadResourceButton";
+import VisibilitySelector from "./ActionButton/VisibilitySelector";
 import Editor, { EditorRefActions } from "./Editor";
 import RelationListView from "./RelationListView";
 import ResourceListView from "./ResourceListView";
@@ -42,6 +41,8 @@ export interface Props {
   memoName?: string;
   // The name of the parent memo if the memo is a comment.
   parentMemoName?: string;
+  // The visibility of the parent memo for preset when commenting
+  parentMemoVisibility?: Visibility;
   autoFocus?: boolean;
   onConfirm?: (memoName: string) => void;
   onCancel?: () => void;
@@ -59,14 +60,12 @@ interface State {
 }
 
 const MemoEditor = observer((props: Props) => {
-  const { className, cacheKey, memoName, parentMemoName, autoFocus, onConfirm, onCancel } = props;
+  const { className, cacheKey, memoName, parentMemoName, parentMemoVisibility, autoFocus, onConfirm, onCancel } = props;
   const t = useTranslate();
   const { i18n } = useTranslation();
-  const memoStore = useMemoStore();
-  const resourceStore = useResourceStore();
   const currentUser = useCurrentUser();
   const [state, setState] = useState<State>({
-    memoVisibility: Visibility.PRIVATE,
+    memoVisibility: parentMemoVisibility ?? Visibility.PRIVATE,
     resourceList: [],
     relationList: [],
     location: undefined,
@@ -100,7 +99,7 @@ const MemoEditor = observer((props: Props) => {
   }, [autoFocus]);
 
   useEffect(() => {
-    let visibility = userSetting.memoVisibility;
+    let visibility = parentMemoVisibility ?? userSetting.memoVisibility;
     if (workspaceMemoRelatedSetting.disallowPublicVisibility && visibility === "PUBLIC") {
       visibility = "PRIVATE";
     }
@@ -108,7 +107,7 @@ const MemoEditor = observer((props: Props) => {
       ...prevState,
       memoVisibility: convertVisibilityFromString(visibility),
     }));
-  }, [userSetting.memoVisibility, workspaceMemoRelatedSetting.disallowPublicVisibility]);
+  }, [parentMemoVisibility, userSetting.memoVisibility, workspaceMemoRelatedSetting.disallowPublicVisibility]);
 
   useAsyncEffect(async () => {
     if (!memoName) {
@@ -470,13 +469,13 @@ const MemoEditor = observer((props: Props) => {
       }}
     >
       <div
-        className={`${
-          className ?? ""
-        } relative w-full flex flex-col justify-start items-start bg-white dark:bg-zinc-800 px-4 pt-4 rounded-lg border ${
+        className={cn(
+          "group relative w-full flex flex-col justify-start items-start bg-white dark:bg-zinc-800 px-4 pt-3 pb-2 rounded-lg border",
           state.isDraggingFile
             ? "border-dashed border-gray-400 dark:border-primary-400 cursor-copy"
-            : "border-gray-200 dark:border-zinc-700 cursor-auto"
-        }`}
+            : "border-gray-200 dark:border-zinc-700 cursor-auto",
+          className,
+        )}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onDrop={handleDropEvent}
@@ -502,7 +501,7 @@ const MemoEditor = observer((props: Props) => {
         <Editor ref={editorRef} {...editorConfig} />
         <ResourceListView resourceList={state.resourceList} setResourceList={handleSetResourceList} />
         <RelationListView relationList={referenceRelations} setRelationList={handleSetRelationList} />
-        <div className="relative w-full flex flex-row justify-between items-center pt-2" onFocus={(e) => e.stopPropagation()}>
+        <div className="relative w-full flex flex-row justify-between items-center py-1" onFocus={(e) => e.stopPropagation()}>
           <div className="flex flex-row justify-start items-center opacity-80 dark:opacity-60 space-x-2">
             <TagSelector editorRef={editorRef} />
             <MarkdownMenu editorRef={editorRef} />
@@ -519,31 +518,9 @@ const MemoEditor = observer((props: Props) => {
               }
             />
           </div>
-        </div>
-        <Divider className="!mt-2 opacity-40" />
-        <div className="w-full flex flex-row justify-between items-center py-3 gap-2 overflow-auto dark:border-t-zinc-500">
-          <div className="relative flex flex-row justify-start items-center" onFocus={(e) => e.stopPropagation()}>
-            <Select
-              variant="plain"
-              size="sm"
-              value={state.memoVisibility}
-              startDecorator={<VisibilityIcon visibility={state.memoVisibility} />}
-              onChange={(_, visibility) => {
-                if (visibility) {
-                  handleMemoVisibilityChange(visibility);
-                }
-              }}
-            >
-              {[Visibility.PRIVATE, Visibility.PROTECTED, Visibility.PUBLIC].map((item) => (
-                <Option key={item} value={item} className="whitespace-nowrap !text-sm">
-                  {t(`memo.visibility.${convertVisibilityToString(item).toLowerCase()}` as any)}
-                </Option>
-              ))}
-            </Select>
-          </div>
-          <div className="shrink-0 flex flex-row justify-end items-center gap-2">
+          <div className="shrink-0 -mr-1 flex flex-row justify-end items-center">
             {props.onCancel && (
-              <Button variant="plain" disabled={state.isRequesting} onClick={handleCancelBtnClick}>
+              <Button variant="plain" className="opacity-60" disabled={state.isRequesting} onClick={handleCancelBtnClick}>
                 {t("common.cancel")}
               </Button>
             )}
@@ -552,6 +529,12 @@ const MemoEditor = observer((props: Props) => {
               {!state.isRequesting ? <SendIcon className="w-4 h-auto ml-1" /> : <LoaderIcon className="w-4 h-auto ml-1 animate-spin" />}
             </Button>
           </div>
+        </div>
+        <div
+          className="absolute invisible group-focus-within:visible group-hover:visible right-1 top-1 opacity-60"
+          onFocus={(e) => e.stopPropagation()}
+        >
+          <VisibilitySelector value={state.memoVisibility} onChange={handleMemoVisibilityChange} />
         </div>
       </div>
     </MemoEditorContext.Provider>
