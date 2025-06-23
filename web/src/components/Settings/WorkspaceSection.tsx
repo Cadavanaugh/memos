@@ -1,5 +1,5 @@
-import { Select, Option, Divider, Switch } from "@mui/joy";
-import { Button, Textarea } from "@usememos/mui";
+import { Select, Option, Divider } from "@mui/joy";
+import { Button, Textarea, Switch } from "@usememos/mui";
 import { isEqual } from "lodash-es";
 import { ExternalLinkIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
@@ -11,7 +11,7 @@ import { workspaceSettingNamePrefix } from "@/store/common";
 import { workspaceStore } from "@/store/v2";
 import { WorkspaceSettingKey } from "@/store/v2/workspace";
 import { IdentityProvider } from "@/types/proto/api/v1/idp_service";
-import { WorkspaceGeneralSetting } from "@/types/proto/api/v1/workspace_setting_service";
+import { WorkspaceGeneralSetting } from "@/types/proto/api/v1/workspace_service";
 import { useTranslate } from "@/utils/i18n";
 import showUpdateCustomizedProfileDialog from "../UpdateCustomizedProfileDialog";
 
@@ -145,7 +145,7 @@ const WorkspaceSection = observer(() => {
       <div className="w-full flex flex-row justify-between items-center">
         <span className="truncate">{t("setting.workspace-section.week-start-day")}</span>
         <Select
-          className="!min-w-fit"
+          className="min-w-fit!"
           value={workspaceGeneralSetting.weekStartDayOffset}
           onChange={(_, weekStartDayOffset) => {
             updatePartialSetting({ weekStartDayOffset: weekStartDayOffset || 0 });

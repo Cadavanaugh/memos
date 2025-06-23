@@ -1,5 +1,6 @@
 import { Divider } from "@mui/joy";
 import { Button } from "@usememos/mui";
+import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -14,7 +15,7 @@ import { workspaceStore } from "@/store/v2";
 import { IdentityProvider, IdentityProvider_Type } from "@/types/proto/api/v1/idp_service";
 import { useTranslate } from "@/utils/i18n";
 
-const SignIn = () => {
+const SignIn = observer(() => {
   const t = useTranslate();
   const currentUser = useCurrentUser();
   const [identityProviderList, setIdentityProviderList] = useState<IdentityProvider[]>([]);
@@ -55,7 +56,7 @@ const SignIn = () => {
   };
 
   return (
-    <div className="py-4 sm:py-8 w-80 max-w-full min-h-[100svh] mx-auto flex flex-col justify-start items-center">
+    <div className="py-4 sm:py-8 w-80 max-w-full min-h-svh mx-auto flex flex-col justify-start items-center">
       <div className="w-full py-4 grow flex flex-col justify-center items-center">
         <div className="w-full flex flex-row justify-center items-center mb-6">
           <img className="h-14 w-auto rounded-full shadow" src={workspaceGeneralSetting.customProfile?.logoUrl || "/logo.webp"} alt="" />
@@ -78,7 +79,7 @@ const SignIn = () => {
         )}
         {identityProviderList.length > 0 && (
           <>
-            {!workspaceGeneralSetting.disallowPasswordAuth && <Divider className="!my-4">{t("common.or")}</Divider>}
+            {!workspaceGeneralSetting.disallowPasswordAuth && <Divider className="my-4!">{t("common.or")}</Divider>}
             <div className="w-full flex flex-col space-y-2">
               {identityProviderList.map((identityProvider) => (
                 <Button
@@ -98,6 +99,6 @@ const SignIn = () => {
       <AuthFooter />
     </div>
   );
-};
+});
 
 export default SignIn;
