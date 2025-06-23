@@ -53,7 +53,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
     (relation) => relation.type === MemoRelation_Type.COMMENT && relation.relatedMemo?.name === memo.name,
   ).length;
   const isMemoOlderThan24Hours = Date.now() - memo.displayTime!.getTime() > 1000 * 60 * 60 * 24;
-  const isMemoFromPastYear = (new Date).getFullYear() < memo.displayTime!.getFullYear();
+  const isMemoFromPastYear = (new Date).getFullYear() > memo.displayTime!.getFullYear();
   const relativeTimeFormat = isMemoOlderThan24Hours ? "datetime" : "auto";
   const isArchived = memo.state === State.ARCHIVED;
   const readonly = memo.creator !== user?.name && !isSuperUser(user);

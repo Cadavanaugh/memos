@@ -25,7 +25,7 @@ const EmbeddedMemo = observer(({ resourceId: uid, params: paramsStr }: Props) =>
   const memoName = `memos/${uid}`;
   const memo = memoStore.getMemoByName(memoName);
   const isMemoOlderThan24Hours = Date.now() - memo.displayTime!.getTime() > 1000 * 60 * 60 * 24;
-  const isMemoFromPastYear = (new Date).getFullYear() < memo.displayTime!.getFullYear();
+  const isMemoFromPastYear = (new Date).getFullYear() > memo.displayTime!.getFullYear();
 
   useEffect(() => {
     memoStore.getOrFetchMemoByName(memoName).finally(() => loadingState.setFinish());
