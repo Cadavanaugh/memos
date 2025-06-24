@@ -24,7 +24,7 @@ import DateTimeInput from "../DateTimeInput";
 import AddMemoRelationPopover from "./ActionButton/AddMemoRelationPopover";
 import LocationSelector from "./ActionButton/LocationSelector";
 import MarkdownMenu from "./ActionButton/MarkdownMenu";
-import RecordAudioButton from "./ActionButton/RecordAudioButton";
+// import RecordAudioButton from "./ActionButton/RecordAudioButton";
 import TagSelector from "./ActionButton/TagSelector";
 import UploadAttachmentButton from "./ActionButton/UploadAttachmentButton";
 import VisibilitySelector from "./ActionButton/VisibilitySelector";
@@ -507,7 +507,7 @@ const MemoEditor = observer((props: Props) => {
           <div className="flex flex-row justify-start items-center opacity-80 dark:opacity-60 space-x-2">
             <TagSelector editorRef={editorRef} />
             <MarkdownMenu editorRef={editorRef} />
-            <RecordAudioButton />
+            {/* <RecordAudioButton /> */}
             <UploadAttachmentButton isUploading={state.isUploadingAttachment} />
             <AddMemoRelationPopover editorRef={editorRef} />
             <LocationSelector
