@@ -17,7 +17,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/usememos/memos/internal/base"
 	"github.com/usememos/memos/internal/util"
 	"github.com/usememos/memos/plugin/idp"
 	"github.com/usememos/memos/plugin/idp/oauth2"
@@ -30,7 +29,7 @@ const (
 	unmatchedUsernameAndPasswordError = "unmatched username and password"
 )
 
-func (s *APIV1Service) GetCurrentSession(ctx context.Context, _ *v1pb.GetCurrentSessionRequest) (*v1pb.User, error) {
+func (s *APIV1Service) GetCurrentSession(ctx context.Context, _ *v1pb.GetCurrentSessionRequest) (*v1pb.GetCurrentSessionResponse, error) {
 	user, err := s.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "failed to get current user: %v", err)
@@ -51,10 +50,12 @@ func (s *APIV1Service) GetCurrentSession(ctx context.Context, _ *v1pb.GetCurrent
 		}
 	}
 
-	return convertUserFromStore(user), nil
+	return &v1pb.GetCurrentSessionResponse{
+		User: convertUserFromStore(user),
+	}, nil
 }
 
-func (s *APIV1Service) CreateSession(ctx context.Context, request *v1pb.CreateSessionRequest) (*v1pb.User, error) {
+func (s *APIV1Service) CreateSession(ctx context.Context, request *v1pb.CreateSessionRequest) (*v1pb.CreateSessionResponse, error) {
 	var existingUser *store.User
 	if passwordCredentials := request.GetPasswordCredentials(); passwordCredentials != nil {
 		user, err := s.Store.GetUser(ctx, &store.FindUser{
@@ -174,19 +175,14 @@ func (s *APIV1Service) CreateSession(ctx context.Context, request *v1pb.CreateSe
 	if err := s.doSignIn(ctx, existingUser, expireTime); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to sign in, error: %v", err)
 	}
-	return convertUserFromStore(existingUser), nil
+
+	return &v1pb.CreateSessionResponse{
+		User:      convertUserFromStore(existingUser),
+		ExpiresAt: timestamppb.New(expireTime),
+	}, nil
 }
 
 func (s *APIV1Service) doSignIn(ctx context.Context, user *store.User, expireTime time.Time) error {
-	// Generate JWT access token for API use
-	accessToken, err := GenerateAccessToken(user.Email, user.ID, expireTime, []byte(s.Secret))
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to generate access token, error: %v", err)
-	}
-	if err := s.UpsertAccessTokenToStore(ctx, user, accessToken, "user login"); err != nil {
-		return status.Errorf(codes.Internal, "failed to upsert access token to store, error: %v", err)
-	}
-
 	// Generate unique session ID for web use
 	sessionID, err := GenerateSessionID()
 	if err != nil {
@@ -213,54 +209,6 @@ func (s *APIV1Service) doSignIn(ctx context.Context, user *store.User, expireTim
 	}
 
 	return nil
-}
-
-func (s *APIV1Service) SignUp(ctx context.Context, request *v1pb.SignUpRequest) (*v1pb.User, error) {
-	workspaceGeneralSetting, err := s.Store.GetWorkspaceGeneralSetting(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get workspace general setting, error: %v", err)
-	}
-	if workspaceGeneralSetting.DisallowUserRegistration {
-		return nil, status.Errorf(codes.PermissionDenied, "sign up is not allowed")
-	}
-
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to generate password hash, error: %v", err)
-	}
-
-	create := &store.User{
-		Username:     request.Username,
-		Nickname:     request.Username,
-		PasswordHash: string(passwordHash),
-	}
-	if !base.UIDMatcher.MatchString(strings.ToLower(create.Username)) {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid username: %s", create.Username)
-	}
-
-	hostUserType := store.RoleHost
-	existedHostUsers, err := s.Store.ListUsers(ctx, &store.FindUser{
-		Role: &hostUserType,
-	})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to list host users, error: %v", err)
-	}
-	if len(existedHostUsers) == 0 {
-		// Change the default role to host if there is no host user.
-		create.Role = store.RoleHost
-	} else {
-		create.Role = store.RoleUser
-	}
-
-	user, err := s.Store.CreateUser(ctx, create)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create user, error: %v", err)
-	}
-
-	if err := s.doSignIn(ctx, user, time.Now().Add(AccessTokenDuration)); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to sign in, error: %v", err)
-	}
-	return convertUserFromStore(user), nil
 }
 
 func (s *APIV1Service) DeleteSession(ctx context.Context, _ *v1pb.DeleteSessionRequest) (*emptypb.Empty, error) {

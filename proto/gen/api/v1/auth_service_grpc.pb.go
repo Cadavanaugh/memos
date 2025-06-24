@@ -23,7 +23,6 @@ const (
 	AuthService_GetCurrentSession_FullMethodName = "/memos.api.v1.AuthService/GetCurrentSession"
 	AuthService_CreateSession_FullMethodName     = "/memos.api.v1.AuthService/CreateSession"
 	AuthService_DeleteSession_FullMethodName     = "/memos.api.v1.AuthService/DeleteSession"
-	AuthService_SignUp_FullMethodName            = "/memos.api.v1.AuthService/SignUp"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -32,16 +31,13 @@ const (
 type AuthServiceClient interface {
 	// GetCurrentSession returns the current active session information.
 	// This method is idempotent and safe, suitable for checking current session state.
-	GetCurrentSession(ctx context.Context, in *GetCurrentSessionRequest, opts ...grpc.CallOption) (*User, error)
+	GetCurrentSession(ctx context.Context, in *GetCurrentSessionRequest, opts ...grpc.CallOption) (*GetCurrentSessionResponse, error)
 	// CreateSession authenticates a user and creates a new session.
 	// Returns the authenticated user information upon successful authentication.
-	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*User, error)
+	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	// DeleteSession terminates the current user session.
 	// This is an idempotent operation that invalidates the user's authentication.
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// SignUp creates a new user account with username and password.
-	// Returns the newly created user information upon successful registration.
-	SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc.CallOption) (*User, error)
 }
 
 type authServiceClient struct {
@@ -52,9 +48,9 @@ func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
 	return &authServiceClient{cc}
 }
 
-func (c *authServiceClient) GetCurrentSession(ctx context.Context, in *GetCurrentSessionRequest, opts ...grpc.CallOption) (*User, error) {
+func (c *authServiceClient) GetCurrentSession(ctx context.Context, in *GetCurrentSessionRequest, opts ...grpc.CallOption) (*GetCurrentSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(User)
+	out := new(GetCurrentSessionResponse)
 	err := c.cc.Invoke(ctx, AuthService_GetCurrentSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -62,9 +58,9 @@ func (c *authServiceClient) GetCurrentSession(ctx context.Context, in *GetCurren
 	return out, nil
 }
 
-func (c *authServiceClient) CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*User, error) {
+func (c *authServiceClient) CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(User)
+	out := new(CreateSessionResponse)
 	err := c.cc.Invoke(ctx, AuthService_CreateSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -82,32 +78,19 @@ func (c *authServiceClient) DeleteSession(ctx context.Context, in *DeleteSession
 	return out, nil
 }
 
-func (c *authServiceClient) SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc.CallOption) (*User, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(User)
-	err := c.cc.Invoke(ctx, AuthService_SignUp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
 type AuthServiceServer interface {
 	// GetCurrentSession returns the current active session information.
 	// This method is idempotent and safe, suitable for checking current session state.
-	GetCurrentSession(context.Context, *GetCurrentSessionRequest) (*User, error)
+	GetCurrentSession(context.Context, *GetCurrentSessionRequest) (*GetCurrentSessionResponse, error)
 	// CreateSession authenticates a user and creates a new session.
 	// Returns the authenticated user information upon successful authentication.
-	CreateSession(context.Context, *CreateSessionRequest) (*User, error)
+	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	// DeleteSession terminates the current user session.
 	// This is an idempotent operation that invalidates the user's authentication.
 	DeleteSession(context.Context, *DeleteSessionRequest) (*emptypb.Empty, error)
-	// SignUp creates a new user account with username and password.
-	// Returns the newly created user information upon successful registration.
-	SignUp(context.Context, *SignUpRequest) (*User, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -118,17 +101,14 @@ type AuthServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAuthServiceServer struct{}
 
-func (UnimplementedAuthServiceServer) GetCurrentSession(context.Context, *GetCurrentSessionRequest) (*User, error) {
+func (UnimplementedAuthServiceServer) GetCurrentSession(context.Context, *GetCurrentSessionRequest) (*GetCurrentSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCurrentSession not implemented")
 }
-func (UnimplementedAuthServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*User, error) {
+func (UnimplementedAuthServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSession not implemented")
 }
 func (UnimplementedAuthServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
-}
-func (UnimplementedAuthServiceServer) SignUp(context.Context, *SignUpRequest) (*User, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SignUp not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -205,24 +185,6 @@ func _AuthService_DeleteSession_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_SignUp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SignUpRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).SignUp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_SignUp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).SignUp(ctx, req.(*SignUpRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -241,10 +203,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSession",
 			Handler:    _AuthService_DeleteSession_Handler,
-		},
-		{
-			MethodName: "SignUp",
-			Handler:    _AuthService_SignUp_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
