@@ -91,9 +91,6 @@ const UserSessionsSection = () => {
                     <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-400">
                       {t("setting.user-sessions-section.last-active")}
                     </th>
-                    <th scope="col" className="px-3 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-400">
-                      {t("setting.user-sessions-section.expires")}
-                    </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4">
                       <span className="sr-only">{t("common.delete")}</span>
                     </th>
@@ -124,9 +121,6 @@ const UserSessionsSection = () => {
                           <ClockIcon className="w-4 h-4" />
                           <span>{userSession.lastAccessedTime?.toLocaleString()}</span>
                         </div>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        {userSession.expireTime?.toLocaleString() ?? t("setting.user-sessions-section.never")}
                       </td>
                       <td className="relative whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm">
                         <Button
