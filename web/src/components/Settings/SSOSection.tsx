@@ -1,15 +1,15 @@
-import { Divider, List, ListItem } from "@mui/joy";
-import { Button } from "@usememos/mui";
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { identityProviderServiceClient } from "@/grpcweb";
 import { IdentityProvider } from "@/types/proto/api/v1/idp_service";
 import { useTranslate } from "@/utils/i18n";
 import showCreateIdentityProviderDialog from "../CreateIdentityProviderDialog";
 import LearnMore from "../LearnMore";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 const SSOSection = () => {
   const t = useTranslate();
@@ -41,18 +41,18 @@ const SSOSection = () => {
     <div className="w-full flex flex-col gap-2 pt-2 pb-4">
       <div className="w-full flex flex-row justify-between items-center gap-1">
         <div className="flex flex-row items-center gap-1">
-          <span className="font-mono text-gray-400">{t("setting.sso-section.sso-list")}</span>
+          <span className="font-mono text-muted-foreground">{t("setting.sso-section.sso-list")}</span>
           <LearnMore url="https://www.usememos.com/docs/advanced-settings/sso" />
         </div>
         <Button color="primary" onClick={() => showCreateIdentityProviderDialog(undefined, fetchIdentityProviderList)}>
           {t("common.create")}
         </Button>
       </div>
-      <Divider />
+      <Separator />
       {identityProviderList.map((identityProvider) => (
         <div
           key={identityProvider.name}
-          className="py-2 w-full border-b last:border-b dark:border-zinc-700 flex flex-row items-center justify-between"
+          className="py-2 w-full border-b last:border-b border-border flex flex-row items-center justify-between"
         >
           <div className="flex flex-row items-center">
             <p className="ml-2">
@@ -63,7 +63,7 @@ const SSOSection = () => {
           <div className="flex flex-row items-center">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="flex items-center justify-center p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded">
+                <button className="flex items-center justify-center p-1 hover:bg-secondary rounded">
                   <MoreVerticalIcon className="w-4 h-auto" />
                 </button>
               </PopoverTrigger>
@@ -71,13 +71,13 @@ const SSOSection = () => {
                 <div className="flex flex-col gap-0.5 text-sm">
                   <button
                     onClick={() => showCreateIdentityProviderDialog(identityProvider, fetchIdentityProviderList)}
-                    className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                    className="flex items-center gap-2 px-2 py-1 text-left text-foreground hover:bg-secondary outline-none rounded"
                   >
                     {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleDeleteIdentityProvider(identityProvider)}
-                    className="flex items-center gap-2 px-2 py-1 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                    className="flex items-center gap-2 px-2 py-1 text-left text-destructive hover:bg-secondary outline-none rounded"
                   >
                     {t("common.delete")}
                   </button>
@@ -88,24 +88,20 @@ const SSOSection = () => {
         </div>
       ))}
       {identityProviderList.length === 0 && (
-        <div className="w-full mt-2 text-sm dark:border-zinc-700 opacity-60 flex flex-row items-center justify-between">
+        <div className="w-full mt-2 text-sm border-border opacity-60 flex flex-row items-center justify-between">
           <p className="">{t("setting.sso-section.no-sso-found")}</p>
         </div>
       )}
 
       <div className="w-full mt-4">
         <p className="text-sm">{t("common.learn-more")}:</p>
-        <List component="ul" marker="disc" size="sm">
-          <ListItem>
-            <Link
-              className="text-sm text-blue-600 hover:underline"
-              to="https://www.usememos.com/docs/advanced-settings/sso"
-              target="_blank"
-            >
+        <ul className="list-disc list-inside text-sm ml-4">
+          <li>
+            <Link className="text-sm text-primary hover:underline" to="https://www.usememos.com/docs/advanced-settings/sso" target="_blank">
               {t("setting.sso-section.single-sign-on")}
             </Link>
-          </ListItem>
-        </List>
+          </li>
+        </ul>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import { HomeSidebar, HomeSidebarDrawer } from "@/components/HomeSidebar";
 import MobileHeader from "@/components/MobileHeader";
 import useResponsiveWidth from "@/hooks/useResponsiveWidth";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 const HomeLayout = observer(() => {
   const { md, lg } = useResponsiveWidth();
@@ -19,7 +19,7 @@ const HomeLayout = observer(() => {
         <div
           className={cn(
             "fixed top-0 left-16 shrink-0 h-svh transition-all",
-            "border-r border-gray-200 dark:border-zinc-800",
+            "border-r border",
             lg ? "w-72" : "w-56",
           )}
         >

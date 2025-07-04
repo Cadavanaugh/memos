@@ -1,6 +1,6 @@
 import { memo } from "react";
+import { cn } from "@/lib/utils";
 import { Attachment } from "@/types/proto/api/v1/attachment_service";
-import { cn } from "@/utils";
 import { getAttachmentType, getAttachmentUrl } from "@/utils/attachment";
 import MemoAttachment from "./MemoAttachment";
 import showPreviewImageDialog from "./PreviewImageDialog";
@@ -35,7 +35,7 @@ const MemoAttachmentListView = ({ attachments = [] }: { attachments: Attachment[
       return (
         <img
           className={cn(
-            "cursor-pointer h-full w-auto rounded-lg border border-zinc-200 dark:border-zinc-800 object-contain hover:opacity-80",
+            "cursor-pointer h-full w-auto rounded-lg border border-border object-contain hover:opacity-80",
             className,
           )}
           src={attachment.externalLink ? attachmentUrl : attachmentUrl + "?thumbnail=true"}
@@ -48,7 +48,7 @@ const MemoAttachmentListView = ({ attachments = [] }: { attachments: Attachment[
       return (
         <video
           className={cn(
-            "cursor-pointer h-full w-auto rounded-lg border border-zinc-200 dark:border-zinc-800 object-contain bg-zinc-100 dark:bg-zinc-800",
+            "cursor-pointer h-full w-auto rounded-lg border border-border object-contain bg-secondary",
             className,
           )}
           preload="metadata"

@@ -5,11 +5,11 @@ import usePrevious from "react-use/lib/usePrevious";
 import Navigation from "@/components/Navigation";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useResponsiveWidth from "@/hooks/useResponsiveWidth";
+import { cn } from "@/lib/utils";
 import Loading from "@/pages/Loading";
 import { Routes } from "@/router";
 import { workspaceStore } from "@/store/v2";
 import memoFilterStore from "@/store/v2/memoFilter";
-import { cn } from "@/utils";
 
 const RootLayout = observer(() => {
   const location = useLocation();
@@ -50,7 +50,7 @@ const RootLayout = observer(() => {
       {sm && (
         <div
           className={cn(
-            "group flex flex-col justify-start items-start fixed top-0 left-0 select-none border-r border-zinc-200 dark:border-zinc-800 h-full bg-zinc-100 dark:bg-zinc-800 dark:bg-opacity-40",
+            "group flex flex-col justify-start items-start fixed top-0 left-0 select-none border-r border h-full bg-secondary",
             "w-16 px-2",
           )}
         >

@@ -1,10 +1,12 @@
-import { Radio, RadioGroup } from "@mui/joy";
-import { Button, Input } from "@usememos/mui";
 import { sortBy } from "lodash-es";
 import { MoreVerticalIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { userServiceClient } from "@/grpcweb";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { userStore } from "@/store/v2";
@@ -12,7 +14,7 @@ import { State } from "@/types/proto/api/v1/common";
 import { User, User_Role } from "@/types/proto/api/v1/user_service";
 import { useTranslate } from "@/utils/i18n";
 import showCreateUserDialog from "../CreateUserDialog";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface LocalState {
   creatingUser: User;
@@ -143,8 +145,8 @@ const MemberSection = observer(() => {
 
   return (
     <div className="w-full flex flex-col gap-2 pt-2 pb-4">
-      <p className="font-medium text-gray-700 dark:text-gray-500">{t("setting.member-section.create-a-member")}</p>
-      <div className="w-auto flex flex-col justify-start items-start gap-2 border border-zinc-200 rounded-md py-2 px-3 dark:border-zinc-700">
+      <p className="font-medium text-muted-foreground">{t("setting.member-section.create-a-member")}</p>
+      <div className="w-auto flex flex-col justify-start items-start gap-2 border border-border rounded-md py-2 px-3">
         <div className="flex flex-col justify-start items-start gap-1">
           <span>{t("common.username")}</span>
           <Input
@@ -167,25 +169,33 @@ const MemberSection = observer(() => {
         </div>
         <div className="flex flex-col justify-start items-start gap-1">
           <span>{t("common.role")}</span>
-          <RadioGroup orientation="horizontal" defaultValue={User_Role.USER} onChange={handleUserRoleInputChange}>
-            <Radio value={User_Role.USER} label={t("setting.member-section.user")} />
-            <Radio value={User_Role.ADMIN} label={t("setting.member-section.admin")} />
+          <RadioGroup
+            defaultValue={User_Role.USER}
+            onValueChange={(value) => handleUserRoleInputChange({ target: { value } } as React.ChangeEvent<HTMLInputElement>)}
+            className="flex flex-row gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value={User_Role.USER} id="user-role" />
+              <Label htmlFor="user-role">{t("setting.member-section.user")}</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value={User_Role.ADMIN} id="admin-role" />
+              <Label htmlFor="admin-role">{t("setting.member-section.admin")}</Label>
+            </div>
           </RadioGroup>
         </div>
         <div className="mt-2">
-          <Button color="primary" onClick={handleCreateUserBtnClick}>
-            {t("common.create")}
-          </Button>
+          <Button onClick={handleCreateUserBtnClick}>{t("common.create")}</Button>
         </div>
       </div>
       <div className="w-full flex flex-row justify-between items-center mt-6">
         <div className="title-text">{t("setting.member-list")}</div>
       </div>
       <div className="w-full overflow-x-auto">
-        <div className="inline-block min-w-full align-middle border border-zinc-200 rounded-lg dark:border-zinc-600">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-zinc-600">
+        <div className="inline-block min-w-full align-middle border border-border rounded-lg">
+          <table className="min-w-full divide-y divide-border">
             <thead>
-              <tr className="text-sm font-semibold text-left text-gray-900 dark:text-gray-400">
+              <tr className="text-sm font-semibold text-left text-foreground">
                 <th scope="col" className="px-3 py-2">
                   {t("common.username")}
                 </th>
@@ -201,23 +211,23 @@ const MemberSection = observer(() => {
                 <th scope="col" className="relative py-2 pl-3 pr-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-zinc-600">
+            <tbody className="divide-y divide-border">
               {sortedUsers.map((user) => (
                 <tr key={user.name}>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
                     {user.username}
                     <span className="ml-1 italic">{user.state === State.ARCHIVED && "(Archived)"}</span>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{stringifyUserRole(user.role)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{user.displayName}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">{stringifyUserRole(user.role)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">{user.displayName}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">{user.email}</td>
                   <td className="relative whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium flex justify-end">
                     {currentUser?.name === user.name ? (
                       <span>{t("common.yourself")}</span>
                     ) : (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="flex items-center justify-center p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded">
+                          <button className="flex items-center justify-center p-1 hover:bg-muted rounded">
                             <MoreVerticalIcon className="w-4 h-auto" />
                           </button>
                         </PopoverTrigger>
@@ -225,14 +235,14 @@ const MemberSection = observer(() => {
                           <div className="flex flex-col gap-0.5 text-sm">
                             <button
                               onClick={() => showCreateUserDialog(user, () => fetchUsers())}
-                              className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                              className="flex items-center gap-2 px-2 py-1 text-left hover:bg-muted outline-none rounded"
                             >
                               {t("common.update")}
                             </button>
                             {user.state === State.NORMAL ? (
                               <button
                                 onClick={() => handleArchiveUserClick(user)}
-                                className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                                className="flex items-center gap-2 px-2 py-1 text-left hover:bg-muted outline-none rounded"
                               >
                                 {t("setting.member-section.archive-member")}
                               </button>
@@ -240,13 +250,13 @@ const MemberSection = observer(() => {
                               <>
                                 <button
                                   onClick={() => handleRestoreUserClick(user)}
-                                  className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                                  className="flex items-center gap-2 px-2 py-1 text-left hover:bg-muted outline-none rounded"
                                 >
                                   {t("common.restore")}
                                 </button>
                                 <button
                                   onClick={() => handleDeleteUserClick(user)}
-                                  className="flex items-center gap-2 px-2 py-1 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+                                  className="flex items-center gap-2 px-2 py-1 text-left text-destructive hover:bg-muted outline-none rounded"
                                 >
                                   {t("setting.member-section.delete-member")}
                                 </button>

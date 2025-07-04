@@ -1,9 +1,9 @@
-import { Button } from "@usememos/mui";
 import { ArrowUpIcon, LoaderIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { matchPath } from "react-router-dom";
 import PullToRefresh from "react-simple-pull-to-refresh";
+import { Button } from "@/components/ui/button";
 import { DEFAULT_LIST_MEMOS_PAGE_SIZE } from "@/helpers/consts";
 import useResponsiveWidth from "@/hooks/useResponsiveWidth";
 import { Routes } from "@/router";
@@ -148,7 +148,7 @@ const PagedMemoList = observer((props: Props) => {
       {/* Loading indicator */}
       {isRequesting && (
         <div className="w-full flex flex-row justify-center items-center my-4">
-          <LoaderIcon className="animate-spin text-zinc-500" />
+          <LoaderIcon className="animate-spin text-muted-foreground" />
         </div>
       )}
 
@@ -158,7 +158,7 @@ const PagedMemoList = observer((props: Props) => {
           {!nextPageToken && sortedMemoList.length === 0 ? (
             <div className="w-full mt-12 mb-8 flex flex-col justify-center items-center italic">
               <Empty />
-              <p className="mt-2 text-gray-600 dark:text-gray-400">{t("message.no-data")}</p>
+              <p className="mt-2 text-muted-foreground">{t("message.no-data")}</p>
             </div>
           ) : (
             <div className="w-full opacity-70 flex flex-row justify-center items-center my-4">
@@ -220,7 +220,7 @@ const BackToTop = () => {
   }
 
   return (
-    <Button variant="plain" onClick={scrollToTop}>
+    <Button variant="ghost" onClick={scrollToTop}>
       {t("router.back-to-top")}
       <ArrowUpIcon className="ml-1 w-4 h-auto" />
     </Button>

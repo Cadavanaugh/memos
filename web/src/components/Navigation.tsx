@@ -1,12 +1,12 @@
-import { Tooltip } from "@mui/joy";
 import { EarthIcon, LibraryIcon, PaperclipIcon, UserCircleIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import { cn } from "@/lib/utils";
 import { Routes } from "@/router";
 import { userStore } from "@/store/v2";
-import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 import BrandBanner from "./BrandBanner";
 import UserBanner from "./UserBanner";
@@ -78,9 +78,9 @@ const Navigation = observer((props: Props) => {
           <NavLink
             className={({ isActive }) =>
               cn(
-                "px-2 py-2 rounded-2xl border flex flex-row items-center text-lg text-gray-800 dark:text-gray-400 hover:bg-white hover:border-zinc-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800",
+                "px-2 py-2 rounded-2xl border flex flex-row items-center text-lg text-foreground hover:bg-secondary hover:border-border",
                 collapsed ? "" : "w-full px-4",
-                isActive ? "bg-white drop-shadow-sm dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700" : "border-transparent",
+                isActive ? "bg-secondary drop-shadow-sm border-border" : "border-transparent",
               )
             }
             key={navLink.id}
@@ -89,9 +89,16 @@ const Navigation = observer((props: Props) => {
             viewTransition
           >
             {props.collapsed ? (
-              <Tooltip title={navLink.title} placement="right" arrow>
-                <div>{navLink.icon}</div>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>{navLink.icon}</div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{navLink.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               navLink.icon
             )}

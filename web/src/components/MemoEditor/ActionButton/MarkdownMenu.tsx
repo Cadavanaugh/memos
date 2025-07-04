@@ -1,8 +1,7 @@
-import { Link } from "@mui/joy";
-import { Button } from "@usememos/mui";
 import { CheckSquareIcon, Code2Icon, SquareSlashIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTranslate } from "@/utils/i18n";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/Popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { EditorRefActions } from "../Editor";
 
 interface Props {
@@ -10,9 +9,8 @@ interface Props {
 }
 
 const MarkdownMenu = (props: Props) => {
-  const t = useTranslate();
-
   const { editorRef } = props;
+  const t = useTranslate();
 
   const handleCodeBlockClick = () => {
     if (!editorRef.current) {
@@ -64,30 +62,35 @@ const MarkdownMenu = (props: Props) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="plain" className="p-0">
-          <SquareSlashIcon className="w-5 h-5" />
+        <Button variant="ghost">
+          <SquareSlashIcon />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="text-sm p-1">
         <div className="flex flex-col text-sm gap-0.5">
           <button
             onClick={handleCodeBlockClick}
-            className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+            className="flex items-center gap-2 px-2 py-1 text-left text-foreground hover:bg-secondary outline-none rounded"
           >
             <Code2Icon className="w-4 h-auto" />
             <span>{t("markdown.code-block")}</span>
           </button>
           <button
             onClick={handleCheckboxClick}
-            className="flex items-center gap-2 px-2 py-1 text-left dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 outline-none rounded"
+            className="flex items-center gap-2 px-2 py-1 text-left text-foreground hover:bg-secondary outline-none rounded"
           >
             <CheckSquareIcon className="w-4 h-auto" />
             <span>{t("markdown.checkbox")}</span>
           </button>
           <div className="pl-2">
-            <Link fontSize={12} href="https://www.usememos.com/docs/getting-started/content-syntax" target="_blank">
+            <a
+              className="text-xs text-primary hover:underline"
+              href="https://www.usememos.com/docs/getting-started/content-syntax"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {t("markdown.content-syntax")}
-            </Link>
+            </a>
           </div>
         </div>
       </PopoverContent>

@@ -7,9 +7,9 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import MemoAttachmentListView from "@/components/MemoAttachmentListView";
 import useLoading from "@/hooks/useLoading";
+import { cn } from "@/lib/utils";
 import { extractMemoIdFromName } from "@/store/common";
 import { memoStore } from "@/store/v2";
-import { cn } from "@/utils";
 import MemoContent from "..";
 import { RendererContext } from "../types";
 import Error from "./Error";
@@ -48,7 +48,7 @@ const EmbeddedMemo = observer(({ resourceId: uid, params: paramsStr }: Props) =>
   // Add the memo to the set of embedded memos. This is used to prevent infinite loops when a memo embeds itself.
   context.embeddedMemos.add(memoName);
   const contentNode = useSnippet ? (
-    <div className={cn("text-gray-800 dark:text-gray-400", inlineMode ? "" : "line-clamp-3")}>{memo.snippet}</div>
+    <div className={cn("text-muted-foreground", inlineMode ? "" : "line-clamp-3")}>{memo.snippet}</div>
   ) : (
     <>
       <MemoContent
@@ -70,8 +70,8 @@ const EmbeddedMemo = observer(({ resourceId: uid, params: paramsStr }: Props) =>
   };
 
   return (
-    <div className="relative flex flex-col justify-start items-start w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:shadow">
-      <div className="w-full mb-1 flex flex-row justify-between items-center text-gray-400 dark:text-gray-500">
+    <div className="relative flex flex-col justify-start items-start w-full px-3 py-2 bg-secondary rounded-lg border border-border hover:shadow">
+      <div className="w-full mb-1 flex flex-row justify-between items-center text-muted-foreground">
         <div className="text-sm leading-5 select-none">
           {isMemoFromPastYear ? (
             memo.displayTime?.toLocaleString(i18n.resolvedLanguage, {

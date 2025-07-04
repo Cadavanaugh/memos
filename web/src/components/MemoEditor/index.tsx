@@ -1,4 +1,3 @@
-import { Button } from "@usememos/mui";
 import copy from "copy-to-clipboard";
 import { isEqual } from "lodash-es";
 import { LoaderIcon, SendIcon } from "lucide-react";
@@ -7,17 +6,18 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import useLocalStorage from "react-use/lib/useLocalStorage";
+import { Button } from "@/components/ui/button";
 import { memoServiceClient } from "@/grpcweb";
 import { TAB_SPACE_WIDTH } from "@/helpers/consts";
 import { isValidUrl } from "@/helpers/utils";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import { cn } from "@/lib/utils";
 import { extractMemoIdFromName } from "@/store/common";
 import { memoStore, attachmentStore, userStore, workspaceStore } from "@/store/v2";
 import { Attachment } from "@/types/proto/api/v1/attachment_service";
 import { Location, Memo, MemoRelation, MemoRelation_Type, Visibility } from "@/types/proto/api/v1/memo_service";
 import { UserSetting } from "@/types/proto/api/v1/user_service";
-import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityFromString } from "@/utils/memo";
 import DateTimeInput from "../DateTimeInput";
@@ -485,10 +485,8 @@ const MemoEditor = observer((props: Props) => {
     >
       <div
         className={cn(
-          "group relative w-full flex flex-col justify-start items-start bg-white dark:bg-zinc-800 px-4 pt-3 pb-2 rounded-lg border",
-          state.isDraggingFile
-            ? "border-dashed border-gray-400 dark:border-primary-400 cursor-copy"
-            : "border-gray-200 dark:border-zinc-700 cursor-auto",
+          "group relative w-full flex flex-col justify-start items-start bg-background px-4 pt-3 pb-2 rounded-lg border",
+          state.isDraggingFile ? "border-dashed border-muted-foreground cursor-copy" : "border-border cursor-auto",
           className,
         )}
         tabIndex={0}
@@ -504,7 +502,7 @@ const MemoEditor = observer((props: Props) => {
         <AttachmentListView attachmentList={state.attachmentList} setAttachmentList={handleSetAttachmentList} />
         <RelationListView relationList={referenceRelations} setRelationList={handleSetRelationList} />
         <div className="relative w-full flex flex-row justify-between items-center py-1" onFocus={(e) => e.stopPropagation()}>
-          <div className="flex flex-row justify-start items-center opacity-80 dark:opacity-60 space-x-2">
+          <div className="flex flex-row justify-start items-center opacity-80 -space-x-2">
             <TagSelector editorRef={editorRef} />
             <MarkdownMenu editorRef={editorRef} />
             {/* <RecordAudioButton /> */}
@@ -522,7 +520,7 @@ const MemoEditor = observer((props: Props) => {
           </div>
           <div className="shrink-0 -mr-1 flex flex-row justify-end items-center">
             {props.onCancel && (
-              <Button variant="plain" className="opacity-60" disabled={state.isRequesting} onClick={handleCancelBtnClick}>
+              <Button variant="ghost" className="opacity-60" disabled={state.isRequesting} onClick={handleCancelBtnClick}>
                 {t("common.cancel")}
               </Button>
             )}
@@ -552,7 +550,7 @@ const MemoEditor = observer((props: Props) => {
 
       {/* Show memo metadata if memoName is provided */}
       {memoName && (
-        <div className="w-full -mt-1 mb-4 text-xs leading-5 px-4 opacity-60 font-mono text-gray-500 dark:text-zinc-500">
+        <div className="w-full -mt-1 mb-4 text-xs leading-5 px-4 opacity-60 font-mono text-muted-foreground">
           <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 items-center">
             {!isEqual(createTime, updateTime) && updateTime && (
               <>

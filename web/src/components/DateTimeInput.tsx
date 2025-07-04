@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
-import { cn } from "@/utils";
+import { cn } from "@/lib/utils";
 
 const DATE_TIME_FORMAT = "M/D/YYYY, H:mm:ss";
 
@@ -20,7 +20,7 @@ const DateTimeInput: React.FC<Props> = ({ value, onChange }) => {
       type="text"
       className={cn(
         "px-1 bg-transparent rounded text-xs transition-all",
-        "border-transparent outline-none focus:border-gray-300 dark:focus:border-zinc-700",
+        "border-transparent outline-none focus:border-border",
         "border",
       )}
       defaultValue={formatDate(value)}

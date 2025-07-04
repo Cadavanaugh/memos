@@ -1,5 +1,6 @@
-import { Divider, Option, Select } from "@mui/joy";
 import { observer } from "mobx-react-lite";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { userStore } from "@/store/v2";
 import { Visibility } from "@/types/proto/api/v1/memo_service";
 import { UserSetting } from "@/types/proto/api/v1/user_service";
@@ -28,7 +29,7 @@ const PreferencesSection = observer(() => {
 
   return (
     <div className="w-full flex flex-col gap-2 pt-2 pb-4">
-      <p className="font-medium text-gray-700 dark:text-gray-500">{t("common.basic")}</p>
+      <p className="font-medium text-muted-foreground">{t("common.basic")}</p>
 
       <div className="w-full flex flex-row justify-between items-center">
         <span>{t("common.language")}</span>
@@ -40,31 +41,30 @@ const PreferencesSection = observer(() => {
         <AppearanceSelect value={setting.appearance as Appearance} onChange={handleAppearanceSelectChange} />
       </div>
 
-      <p className="font-medium text-gray-700 dark:text-gray-500">{t("setting.preference")}</p>
+      <p className="font-medium text-muted-foreground">{t("setting.preference")}</p>
 
       <div className="w-full flex flex-row justify-between items-center">
         <span className="truncate">{t("setting.preference-section.default-memo-visibility")}</span>
-        <Select
-          className="min-w-fit!"
-          value={setting.memoVisibility}
-          startDecorator={<VisibilityIcon visibility={convertVisibilityFromString(setting.memoVisibility)} />}
-          onChange={(_, visibility) => {
-            if (visibility) {
-              handleDefaultMemoVisibilityChanged(visibility);
-            }
-          }}
-        >
-          {[Visibility.PRIVATE, Visibility.PROTECTED, Visibility.PUBLIC]
-            .map((v) => convertVisibilityToString(v))
-            .map((item) => (
-              <Option key={item} value={item} className="whitespace-nowrap">
-                {t(`memo.visibility.${item.toLowerCase() as Lowercase<typeof item>}`)}
-              </Option>
-            ))}
+        <Select value={setting.memoVisibility} onValueChange={handleDefaultMemoVisibilityChanged}>
+          <SelectTrigger className="min-w-fit">
+            <div className="flex items-center gap-2">
+              <VisibilityIcon visibility={convertVisibilityFromString(setting.memoVisibility)} />
+              <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {[Visibility.PRIVATE, Visibility.PROTECTED, Visibility.PUBLIC]
+              .map((v) => convertVisibilityToString(v))
+              .map((item) => (
+                <SelectItem key={item} value={item} className="whitespace-nowrap">
+                  {t(`memo.visibility.${item.toLowerCase() as Lowercase<typeof item>}`)}
+                </SelectItem>
+              ))}
+          </SelectContent>
         </Select>
       </div>
 
-      <Divider className="my-3!" />
+      <Separator className="my-3" />
 
       <WebhookSection />
     </div>

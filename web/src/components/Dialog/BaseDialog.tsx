@@ -1,10 +1,8 @@
-import { CssVarsProvider } from "@mui/joy";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { cn } from "@/lib/utils";
 import dialogStore from "@/store/v2/dialog";
-import theme from "@/theme";
-import { cn } from "@/utils";
 
 interface DialogConfig {
   dialogName: string;
@@ -54,7 +52,7 @@ const BaseDialog = observer((props: Props) => {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 flex flex-col justify-start items-center w-full h-full pt-16 pb-8 px-4 z-1000 overflow-x-hidden overflow-y-scroll transition-all hide-scrollbar bg-black/60",
+        "fixed top-0 left-0 flex flex-col justify-start items-center w-full h-full pt-16 pb-8 px-4 z-1000 overflow-x-hidden overflow-y-scroll transition-all hide-scrollbar bg-foreground/60",
         className,
       )}
       onMouseDown={handleSpaceClicked}
@@ -90,11 +88,9 @@ export function generateDialog<T extends DialogProps>(
   } as T;
 
   const Fragment = observer(() => (
-    <CssVarsProvider theme={theme}>
-      <BaseDialog destroy={cbs.destroy} clickSpaceDestroy={true} {...config}>
-        <DialogComponent {...dialogProps} />
-      </BaseDialog>
-    </CssVarsProvider>
+    <BaseDialog destroy={cbs.destroy} clickSpaceDestroy={true} {...config}>
+      <DialogComponent {...dialogProps} />
+    </BaseDialog>
   ));
 
   dialog.render(<Fragment />);
