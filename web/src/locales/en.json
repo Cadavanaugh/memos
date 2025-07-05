@@ -188,10 +188,6 @@
     "succeed-copy-link": "Link copied successfully.",
     "update-succeed": "Update succeeded",
     "user-not-found": "User not found",
-    "remove-completed-task-list-items-successfully": "The removal was successful",
-    "failed-to-embed-memo": "Failed to embed memo",
-    "description-is-required": "Description is required",
-    "fill-all-required-fields": "Please fill all required fields",
     "microphone-not-available": "Cannot access microphone"
   },
   "reference": {
