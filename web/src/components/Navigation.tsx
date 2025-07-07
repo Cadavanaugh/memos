@@ -64,12 +64,7 @@ const Navigation = observer((props: Props) => {
   const navLinks: NavLinkItem[] = currentUser ? [homeNavLink, exploreNavLink, attachmentsNavLink] : [exploreNavLink, signInNavLink];
 
   return (
-    <header
-      className={cn(
-        "w-full h-full overflow-auto flex flex-col justify-between items-start gap-4 py-4 md:pt-6 z-30 hide-scrollbar",
-        className,
-      )}
-    >
+    <header className={cn("w-full h-full overflow-auto flex flex-col justify-between items-start gap-4 hide-scrollbar", className)}>
       <div className="w-full px-1 py-1 flex flex-col justify-start items-start space-y-2 overflow-auto overflow-x-hidden hide-scrollbar shrink">
         <NavLink className="mb-3 cursor-default" to={currentUser ? Routes.ROOT : Routes.EXPLORE}>
           <BrandBanner collapsed={collapsed} />
@@ -81,8 +76,8 @@ const Navigation = observer((props: Props) => {
                 "px-2 py-2 rounded-2xl border flex flex-row items-center text-lg text-sidebar-foreground transition-colors",
                 collapsed ? "" : "w-full px-4",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-border"
-                  : "border-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-border",
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-accent-border drop-shadow"
+                  : "border-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-accent-border opacity-80",
               )
             }
             key={navLink.id}
