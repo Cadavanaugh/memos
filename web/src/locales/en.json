@@ -162,7 +162,7 @@
     "visibility": {
       "disabled": "Public memos are disabled",
       "private": "Private",
-      "protected": "Workspace",
+      "protected": "Protected",
       "public": "Public"
     },
     "list": "List",
@@ -311,6 +311,7 @@
     "preference-section": {
       "default-memo-sort-option": "Memo display time",
       "default-memo-visibility": "Default memo visibility",
+      "apperance": "Appearance",
       "theme": "Theme"
     },
     "sso": "SSO",
