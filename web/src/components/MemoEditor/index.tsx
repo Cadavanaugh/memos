@@ -507,7 +507,7 @@ const MemoEditor = observer((props: Props) => {
             <MarkdownMenu editorRef={editorRef} />
             {/* <RecordAudioButton /> */}
             <UploadAttachmentButton isUploading={state.isUploadingAttachment} />
-            <AddMemoRelationPopover editorRef={editorRef} />
+            <AddMemoRelationPopover />
             <LocationSelector
               location={state.location}
               onChange={(location) =>

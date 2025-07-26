@@ -1,21 +1,10 @@
 import { uniqBy } from "lodash-es";
 import { makeAutoObservable } from "mobx";
 import { workspaceServiceClient } from "@/grpcweb";
-import { WorkspaceProfile } from "@/types/proto/api/v1/workspace_service";
+import { WorkspaceProfile, WorkspaceSetting_Key } from "@/types/proto/api/v1/workspace_service";
 import { WorkspaceGeneralSetting, WorkspaceMemoRelatedSetting, WorkspaceSetting } from "@/types/proto/api/v1/workspace_service";
 import { isValidateLocale } from "@/utils/i18n";
 import { workspaceSettingNamePrefix } from "./common";
-
-export enum WorkspaceSettingKey {
-  /** BASIC - BASIC is the key for basic settings. */
-  BASIC = "BASIC",
-  /** GENERAL - GENERAL is the key for general settings. */
-  GENERAL = "GENERAL",
-  /** STORAGE - STORAGE is the key for storage settings. */
-  STORAGE = "STORAGE",
-  /** MEMO_RELATED - MEMO_RELATED is the key for memo related settings. */
-  MEMO_RELATED = "MEMO_RELATED",
-}
 
 class LocalState {
   locale: string = "en";
@@ -25,14 +14,14 @@ class LocalState {
 
   get generalSetting() {
     return (
-      this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSettingKey.GENERAL}`)?.generalSetting ||
+      this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSetting_Key.GENERAL}`)?.generalSetting ||
       WorkspaceGeneralSetting.fromPartial({})
     );
   }
 
   get memoRelatedSetting() {
     return (
-      this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSettingKey.MEMO_RELATED}`)
+      this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSetting_Key.MEMO_RELATED}`)
         ?.memoRelatedSetting || WorkspaceMemoRelatedSetting.fromPartial({})
     );
   }
@@ -59,7 +48,7 @@ class LocalState {
 const workspaceStore = (() => {
   const state = new LocalState();
 
-  const fetchWorkspaceSetting = async (settingKey: WorkspaceSettingKey) => {
+  const fetchWorkspaceSetting = async (settingKey: WorkspaceSetting_Key) => {
     const setting = await workspaceServiceClient.getWorkspaceSetting({ name: `${workspaceSettingNamePrefix}${settingKey}` });
     state.setPartial({
       settings: uniqBy([setting, ...state.settings], "name"),
@@ -73,7 +62,7 @@ const workspaceStore = (() => {
     });
   };
 
-  const getWorkspaceSettingByKey = (settingKey: WorkspaceSettingKey) => {
+  const getWorkspaceSettingByKey = (settingKey: WorkspaceSetting_Key) => {
     return (
       state.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${settingKey}`) || WorkspaceSetting.fromPartial({})
     );
@@ -90,7 +79,7 @@ const workspaceStore = (() => {
 export const initialWorkspaceStore = async () => {
   const workspaceProfile = await workspaceServiceClient.getWorkspaceProfile({});
   // Prepare workspace settings.
-  for (const key of [WorkspaceSettingKey.GENERAL, WorkspaceSettingKey.MEMO_RELATED]) {
+  for (const key of [WorkspaceSetting_Key.GENERAL, WorkspaceSetting_Key.MEMO_RELATED]) {
     await workspaceStore.fetchWorkspaceSetting(key);
   }
 

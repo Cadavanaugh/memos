@@ -9,7 +9,7 @@ import (
 	"github.com/usememos/memos/plugin/filter"
 )
 
-func TestRestoreExprToSQL(t *testing.T) {
+func TestConvertExprToSQL(t *testing.T) {
 	tests := []struct {
 		filter string
 		want   string
@@ -22,7 +22,7 @@ func TestRestoreExprToSQL(t *testing.T) {
 		},
 		{
 			filter: `!(tag in ["tag1", "tag2"])`,
-			want:   `NOT ((memo.payload->'tags' @> jsonb_build_array($1) OR memo.payload->'tags' @> jsonb_build_array($2)))`,
+			want:   "NOT ((memo.payload->'tags' @> jsonb_build_array($1) OR memo.payload->'tags' @> jsonb_build_array($2)))",
 			args:   []any{"tag1", "tag2"},
 		},
 		{
@@ -115,14 +115,44 @@ func TestRestoreExprToSQL(t *testing.T) {
 			want:   "jsonb_array_length(COALESCE(memo.payload->'tags', '[]'::jsonb)) = $1",
 			args:   []any{int64(2)},
 		},
+		{
+			filter: `has_link == true`,
+			want:   "(memo->'payload'->'property'->>'hasLink')::boolean = $1",
+			args:   []any{true},
+		},
+		{
+			filter: `has_code == false`,
+			want:   "(memo->'payload'->'property'->>'hasCode')::boolean = $1",
+			args:   []any{false},
+		},
+		{
+			filter: `has_incomplete_tasks != false`,
+			want:   "(memo->'payload'->'property'->>'hasIncompleteTasks')::boolean != $1",
+			args:   []any{false},
+		},
+		{
+			filter: `has_link`,
+			want:   "(memo->'payload'->'property'->>'hasLink')::boolean = true",
+			args:   []any{},
+		},
+		{
+			filter: `has_code`,
+			want:   "(memo->'payload'->'property'->>'hasCode')::boolean = true",
+			args:   []any{},
+		},
+		{
+			filter: `has_incomplete_tasks`,
+			want:   "(memo->'payload'->'property'->>'hasIncompleteTasks')::boolean = true",
+			args:   []any{},
+		},
 	}
 
 	for _, tt := range tests {
-		db := &DB{}
 		parsedExpr, err := filter.Parse(tt.filter, filter.MemoFilterCELAttributes...)
 		require.NoError(t, err)
 		convertCtx := filter.NewConvertContext()
-		err = db.ConvertExprToSQL(convertCtx, parsedExpr.GetExpr())
+		converter := filter.NewCommonSQLConverterWithOffset(&filter.PostgreSQLDialect{}, convertCtx.ArgsOffset+len(convertCtx.Args))
+		err = converter.ConvertExprToSQL(convertCtx, parsedExpr.GetExpr())
 		require.NoError(t, err)
 		require.Equal(t, tt.want, convertCtx.Buffer.String())
 		require.Equal(t, tt.args, convertCtx.Args)

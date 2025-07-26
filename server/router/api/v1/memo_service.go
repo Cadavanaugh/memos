@@ -99,21 +99,6 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 		// Exclude comments by default.
 		ExcludeComments: true,
 	}
-	// Handle deprecated old_filter for backward compatibility
-	if request.OldFilter != "" && request.Filter == "" {
-		//nolint:staticcheck // SA1019: Using deprecated field for backward compatibility
-		if err := s.buildMemoFindWithFilter(ctx, memoFind, request.OldFilter); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "failed to build find memos with filter: %v", err)
-		}
-	}
-	if request.Parent != "" && request.Parent != "users/-" {
-		userID, err := ExtractUserIDFromName(request.Parent)
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid parent: %v", err)
-		}
-		memoFind.CreatorID = &userID
-		memoFind.OrderByPinned = true
-	}
 	if request.State == v1pb.State_ARCHIVED {
 		state := store.Archived
 		memoFind.RowStatus = &state
@@ -136,7 +121,7 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 		if err := s.validateFilter(ctx, request.Filter); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid filter: %v", err)
 		}
-		memoFind.Filter = &request.Filter
+		memoFind.Filters = append(memoFind.Filters, request.Filter)
 	}
 
 	currentUser, err := s.GetCurrentUser(ctx)
@@ -147,13 +132,8 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 		memoFind.VisibilityList = []store.Visibility{store.Public}
 	} else {
 		if memoFind.CreatorID == nil {
-			internalFilter := fmt.Sprintf(`creator_id == %d || visibility in ["PUBLIC", "PROTECTED"]`, currentUser.ID)
-			if memoFind.Filter != nil {
-				filter := fmt.Sprintf("(%s) && (%s)", *memoFind.Filter, internalFilter)
-				memoFind.Filter = &filter
-			} else {
-				memoFind.Filter = &internalFilter
-			}
+			filter := fmt.Sprintf(`creator_id == %d || visibility in ["PUBLIC", "PROTECTED"]`, currentUser.ID)
+			memoFind.Filters = append(memoFind.Filters, filter)
 		} else if *memoFind.CreatorID != currentUser.ID {
 			memoFind.VisibilityList = []store.Visibility{store.Public, store.Protected}
 		}
@@ -572,7 +552,7 @@ func (s *APIV1Service) RenameMemoTag(ctx context.Context, request *v1pb.RenameMe
 
 	memoFind := &store.FindMemo{
 		CreatorID:       &user.ID,
-		PayloadFind:     &store.FindMemoPayload{TagSearch: []string{request.OldTag}},
+		Filters:         []string{fmt.Sprintf("tag in [\"%s\"]", request.OldTag)},
 		ExcludeComments: true,
 	}
 	if (request.Parent) != "memos/-" {
@@ -622,7 +602,7 @@ func (s *APIV1Service) DeleteMemoTag(ctx context.Context, request *v1pb.DeleteMe
 
 	memoFind := &store.FindMemo{
 		CreatorID:       &user.ID,
-		PayloadFind:     &store.FindMemoPayload{TagSearch: []string{request.Tag}},
+		Filters:         []string{fmt.Sprintf("tag in [\"%s\"]", request.Tag)},
 		ExcludeContent:  true,
 		ExcludeComments: true,
 	}
