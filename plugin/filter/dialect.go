@@ -185,12 +185,12 @@ func (d *PostgreSQLDialect) GetJSONArrayLength(path string) string {
 
 func (d *PostgreSQLDialect) GetJSONContains(path, _ string) string {
 	jsonPath := strings.Replace(path, "$.tags", "payload->'tags'", 1)
-	return fmt.Sprintf("%s.%s @> jsonb_build_array(?)", d.GetTablePrefix(), jsonPath)
+	return fmt.Sprintf("%s.%s @> jsonb_build_array(?::json)", d.GetTablePrefix(), jsonPath)
 }
 
 func (d *PostgreSQLDialect) GetJSONLike(path, _ string) string {
 	jsonPath := strings.Replace(path, "$.tags", "payload->'tags'", 1)
-	return fmt.Sprintf("%s.%s @> jsonb_build_array(?)", d.GetTablePrefix(), jsonPath)
+	return fmt.Sprintf("%s.%s @> jsonb_build_array(?::json)", d.GetTablePrefix(), jsonPath)
 }
 
 func (*PostgreSQLDialect) GetBooleanValue(value bool) interface{} {
@@ -222,7 +222,7 @@ func (d *PostgreSQLDialect) GetBooleanCheck(path string) string {
 }
 
 func (d *PostgreSQLDialect) GetTimestampComparison(field string) string {
-	return fmt.Sprintf("EXTRACT(EPOCH FROM %s.%s)", d.GetTablePrefix(), field)
+	return fmt.Sprintf("EXTRACT(EPOCH FROM TO_TIMESTAMP(%s.%s))", d.GetTablePrefix(), field)
 }
 
 func (*PostgreSQLDialect) GetCurrentTimestamp() string {
