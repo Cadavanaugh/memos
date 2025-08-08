@@ -6,6 +6,7 @@ import useDebounce from "react-use/lib/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { memoServiceClient } from "@/grpcweb";
 import { DEFAULT_LIST_MEMOS_PAGE_SIZE } from "@/helpers/consts";
 import useCurrentUser from "@/hooks/useCurrentUser";
@@ -95,11 +96,20 @@ const AddMemoRelationPopover = () => {
 
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <LinkIcon className="size-5" />
-        </Button>
-      </PopoverTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <LinkIcon className="size-5" />
+              </Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{t("tooltip.link-memo")}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent align="center">
         <div className="w-[16rem] p-1 flex flex-col justify-start items-start">
           {/* Search and selection interface */}
