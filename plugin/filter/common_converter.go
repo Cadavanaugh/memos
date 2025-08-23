@@ -122,7 +122,7 @@ func (c *CommonSQLConverter) handleComparisonOperator(ctx *ConvertContext, callE
 		return err
 	}
 
-	if !slices.Contains([]string{"creator_id", "created_ts", "updated_ts", "visibility", "content", "has_task_list", "has_link", "has_code", "has_incomplete_tasks"}, identifier) {
+	if !slices.Contains([]string{"creator_id", "created_ts", "updated_ts", "visibility", "content", "pinned", "has_task_list", "has_link", "has_code", "has_incomplete_tasks"}, identifier) {
 		return errors.Errorf("invalid identifier for %s", callExpr.Function)
 	}
 
@@ -140,6 +140,8 @@ func (c *CommonSQLConverter) handleComparisonOperator(ctx *ConvertContext, callE
 		return c.handleStringComparison(ctx, identifier, operator, value)
 	case "creator_id":
 		return c.handleIntComparison(ctx, identifier, operator, value)
+	case "pinned":
+		return c.handlePinnedComparison(ctx, operator, value)
 	case "has_task_list", "has_link", "has_code", "has_incomplete_tasks":
 		return c.handleBooleanComparison(ctx, identifier, operator, value)
 	}
@@ -205,7 +207,7 @@ func (c *CommonSQLConverter) handleInOperator(ctx *ConvertContext, callExpr *exp
 		return err
 	}
 
-	if !slices.Contains([]string{"tag", "visibility", "content_id"}, identifier) {
+	if !slices.Contains([]string{"tag", "visibility", "content_id", "memo_id"}, identifier) {
 		return errors.Errorf("invalid identifier for %s", callExpr.Function)
 	}
 
@@ -224,6 +226,8 @@ func (c *CommonSQLConverter) handleInOperator(ctx *ConvertContext, callExpr *exp
 		return c.handleVisibilityInList(ctx, values)
 	} else if identifier == "content_id" {
 		return c.handleContentIDInList(ctx, values)
+	} else if identifier == "memo_id" {
+		return c.handleMemoIDInList(ctx, values)
 	}
 
 	return nil
@@ -323,6 +327,28 @@ func (c *CommonSQLConverter) handleContentIDInList(ctx *ConvertContext, values [
 		}
 	} else {
 		if _, err := ctx.Buffer.WriteString(fmt.Sprintf("%s.`content_id` IN (%s)", tablePrefix, strings.Join(placeholders, ","))); err != nil {
+			return err
+		}
+	}
+
+	ctx.Args = append(ctx.Args, values...)
+	return nil
+}
+
+func (c *CommonSQLConverter) handleMemoIDInList(ctx *ConvertContext, values []any) error {
+	placeholders := []string{}
+	for range values {
+		placeholders = append(placeholders, c.dialect.GetParameterPlaceholder(c.paramIndex))
+		c.paramIndex++
+	}
+
+	tablePrefix := c.dialect.GetTablePrefix("resource")
+	if _, ok := c.dialect.(*PostgreSQLDialect); ok {
+		if _, err := ctx.Buffer.WriteString(fmt.Sprintf("%s.memo_id IN (%s)", tablePrefix, strings.Join(placeholders, ","))); err != nil {
+			return err
+		}
+	} else {
+		if _, err := ctx.Buffer.WriteString(fmt.Sprintf("%s.`memo_id` IN (%s)", tablePrefix, strings.Join(placeholders, ","))); err != nil {
 			return err
 		}
 	}
@@ -491,6 +517,35 @@ func (c *CommonSQLConverter) handleIntComparison(ctx *ConvertContext, field, ope
 	return nil
 }
 
+func (c *CommonSQLConverter) handlePinnedComparison(ctx *ConvertContext, operator string, value interface{}) error {
+	if operator != "=" && operator != "!=" {
+		return errors.Errorf("invalid operator for pinned field")
+	}
+
+	valueBool, ok := value.(bool)
+	if !ok {
+		return errors.New("invalid boolean value for pinned field")
+	}
+
+	tablePrefix := c.dialect.GetTablePrefix("memo")
+
+	var sqlExpr string
+	if _, ok := c.dialect.(*PostgreSQLDialect); ok {
+		sqlExpr = fmt.Sprintf("%s.pinned %s %s", tablePrefix, operator, c.dialect.GetParameterPlaceholder(c.paramIndex))
+	} else {
+		sqlExpr = fmt.Sprintf("%s.`pinned` %s %s", tablePrefix, operator, c.dialect.GetParameterPlaceholder(c.paramIndex))
+	}
+
+	if _, err := ctx.Buffer.WriteString(sqlExpr); err != nil {
+		return err
+	}
+
+	ctx.Args = append(ctx.Args, c.dialect.GetBooleanValue(valueBool))
+	c.paramIndex++
+
+	return nil
+}
+
 func (c *CommonSQLConverter) handleBooleanComparison(ctx *ConvertContext, field, operator string, value interface{}) error {
 	if operator != "=" && operator != "!=" {
 		return errors.Errorf("invalid operator for %s", field)
@@ -574,7 +629,7 @@ func (c *CommonSQLConverter) handleBooleanComparison(ctx *ConvertContext, field,
 
 	// Handle PostgreSQL differently - it uses the raw operator
 	if _, ok := c.dialect.(*PostgreSQLDialect); ok {
-		var jsonExtract = c.dialect.GetJSONExtract(jsonPath)
+		jsonExtract := c.dialect.GetJSONExtract(jsonPath)
 
 		sqlExpr := fmt.Sprintf("(%s)::boolean %s %s",
 			jsonExtract,
