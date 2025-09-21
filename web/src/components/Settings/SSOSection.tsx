@@ -1,7 +1,6 @@
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -55,12 +54,20 @@ const SSOSection = () => {
     setEditingIdentityProvider(undefined);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    // Clear editing state when dialog is closed
+    if (!open) {
+      setEditingIdentityProvider(undefined);
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-2 pt-2 pb-4">
       <div className="w-full flex flex-row justify-between items-center gap-1">
         <div className="flex flex-row items-center gap-1">
           <span className="font-mono text-muted-foreground">{t("setting.sso-section.sso-list")}</span>
-          <LearnMore url="https://www.usememos.com/docs/advanced-settings/sso" />
+          <LearnMore url="https://www.usememos.com/docs/configuration/authentication" />
         </div>
         <Button color="primary" onClick={handleCreateIdentityProvider}>
           {t("common.create")}
@@ -99,19 +106,9 @@ const SSOSection = () => {
         </div>
       )}
 
-      <div className="w-full mt-4">
-        <p className="text-sm">{t("common.learn-more")}:</p>
-        <ul className="list-disc list-inside text-sm ml-4">
-          <li>
-            <Link className="text-sm text-primary hover:underline" to="https://www.usememos.com/docs/advanced-settings/sso" target="_blank">
-              {t("setting.sso-section.single-sign-on")}
-            </Link>
-          </li>
-        </ul>
-      </div>
       <CreateIdentityProviderDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         identityProvider={editingIdentityProvider}
         onSuccess={handleDialogSuccess}
       />
