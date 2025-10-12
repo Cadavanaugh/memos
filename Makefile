@@ -1,4 +1,4 @@
-.PHONY: build_backend backend frontend
+.PHONY: build_backend backend frontend update
 
 build_backend:
 	sh scripts/build.sh
