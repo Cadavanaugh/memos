@@ -488,18 +488,6 @@ const MemoEditor = observer((props: Props) => {
         onCompositionEnd={handleCompositionEnd}
       >
         <Editor ref={editorRef} {...editorConfig} />
-<<<<<<< HEAD
-        <AttachmentListView attachmentList={state.attachmentList} setAttachmentList={handleSetAttachmentList} />
-        <RelationListView relationList={referenceRelations} setRelationList={handleSetRelationList} />
-        <div className="relative w-full flex flex-row justify-between items-center py-1 gap-2" onFocus={(e) => e.stopPropagation()}>
-          <div className="flex flex-row justify-start items-center opacity-60 shrink-1">
-            <TagSelector editorRef={editorRef} />
-            <MarkdownMenu editorRef={editorRef} />
-            {/* <RecordAudioButton /> */}
-            <UploadAttachmentButton isUploading={state.isUploadingAttachment} />
-            <AddMemoRelationPopover />
-            <LocationSelector
-=======
         <LocationDisplay
           mode="edit"
           location={state.location}
@@ -516,7 +504,6 @@ const MemoEditor = observer((props: Props) => {
           <div className="flex flex-row justify-start items-center gap-1">
             <InsertMenu
               isUploading={state.isUploadingAttachment}
->>>>>>> main
               location={state.location}
               onLocationChange={(location) =>
                 setState((prevState) => ({
