@@ -6,8 +6,10 @@ import { RouterProvider } from "react-router-dom";
 import "./i18n";
 import "./index.css";
 import router from "./router";
+// Configure MobX before importing any stores
+import "./store/config";
+import { initialInstanceStore } from "./store/instance";
 import { initialUserStore } from "./store/user";
-import { initialWorkspaceStore } from "./store/workspace";
 import { applyThemeEarly } from "./utils/theme";
 import "leaflet/dist/leaflet.css";
 
@@ -22,7 +24,7 @@ const Main = observer(() => (
 ));
 
 (async () => {
-  await initialWorkspaceStore();
+  await initialInstanceStore();
   await initialUserStore();
 
   const container = document.getElementById("root");
