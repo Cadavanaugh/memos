@@ -1,12 +1,20 @@
 import { LatLng } from "leaflet";
 import { uniqBy } from "lodash-es";
-import { FileIcon, LinkIcon, LoaderIcon, MapPinIcon, PlusIcon } from "lucide-react";
+import { FileIcon, LinkIcon, LoaderIcon, MapPinIcon, Maximize2Icon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useContext, useState } from "react";
+import type { LocalFile } from "@/components/memo-metadata";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Attachment } from "@/types/proto/api/v1/attachment_service";
-import { Location, MemoRelation } from "@/types/proto/api/v1/memo_service";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Location, MemoRelation } from "@/types/proto/api/v1/memo_service";
 import { useTranslate } from "@/utils/i18n";
 import { MemoEditorContext } from "../types";
 import { LinkMemoDialog } from "./InsertMenu/LinkMemoDialog";
@@ -19,6 +27,7 @@ interface Props {
   isUploading?: boolean;
   location?: Location;
   onLocationChange: (location?: Location) => void;
+  onToggleFocusMode?: () => void;
 }
 
 const InsertMenu = observer((props: Props) => {
@@ -28,8 +37,10 @@ const InsertMenu = observer((props: Props) => {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
 
-  const { fileInputRef, uploadingFlag, handleFileInputChange, handleUploadClick } = useFileUpload((attachments: Attachment[]) => {
-    context.setAttachmentList([...context.attachmentList, ...attachments]);
+  const { fileInputRef, selectingFlag, handleFileInputChange, handleUploadClick } = useFileUpload((newFiles: LocalFile[]) => {
+    if (context.addLocalFiles) {
+      context.addLocalFiles(newFiles);
+    }
   });
 
   const linkMemo = useLinkMemo({
@@ -44,7 +55,7 @@ const InsertMenu = observer((props: Props) => {
 
   const location = useLocation(props.location);
 
-  const isUploading = uploadingFlag || props.isUploading;
+  const isUploading = selectingFlag || props.isUploading;
 
   const handleLocationClick = () => {
     setLocationDialogOpen(true);
@@ -124,6 +135,20 @@ const InsertMenu = observer((props: Props) => {
             <MapPinIcon className="w-4 h-4" />
             {t("tooltip.select-location")}
           </DropdownMenuItem>
+          {/* View submenu with Focus Mode */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <MoreHorizontalIcon className="w-4 h-4" />
+              {t("common.more")}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem onClick={props.onToggleFocusMode}>
+                <Maximize2Icon className="w-4 h-4" />
+                {t("editor.focus-mode")}
+                <span className="ml-auto text-xs text-muted-foreground opacity-60">⌘⇧F</span>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
 

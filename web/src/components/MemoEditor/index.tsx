@@ -1,6 +1,6 @@
 import copy from "copy-to-clipboard";
 import { isEqual } from "lodash-es";
-import { LoaderIcon } from "lucide-react";
+import { LoaderIcon, Minimize2Icon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -13,19 +13,48 @@ import { isValidUrl } from "@/helpers/utils";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import { memoStore, attachmentStore, userStore, instanceStore } from "@/store";
+import { attachmentStore, instanceStore, memoStore, userStore } from "@/store";
 import { extractMemoIdFromName } from "@/store/common";
 import { Attachment } from "@/types/proto/api/v1/attachment_service";
 import { Location, Memo, MemoRelation, MemoRelation_Type, Visibility } from "@/types/proto/api/v1/memo_service";
 import { useTranslate } from "@/utils/i18n";
 import { convertVisibilityFromString } from "@/utils/memo";
 import DateTimeInput from "../DateTimeInput";
-import { LocationDisplay, AttachmentList, RelationList } from "../memo-metadata";
+import type { LocalFile } from "../memo-metadata";
+import { AttachmentList, LocationDisplay, RelationList } from "../memo-metadata";
 import InsertMenu from "./ActionButton/InsertMenu";
 import VisibilitySelector from "./ActionButton/VisibilitySelector";
 import Editor, { EditorRefActions } from "./Editor";
 import { handleEditorKeydownWithMarkdownShortcuts, hyperlinkHighlightedText } from "./handlers";
 import { MemoEditorContext } from "./types";
+
+/**
+ * Focus Mode keyboard shortcuts
+ * - Toggle: Cmd/Ctrl + Shift + F (matches GitHub, Google Docs convention)
+ * - Exit: Escape key
+ */
+const FOCUS_MODE_TOGGLE_KEY = "f";
+const FOCUS_MODE_EXIT_KEY = "Escape";
+
+/**
+ * Focus Mode styling constants
+ * Centralized to make it easy to adjust the appearance and maintain consistency
+ */
+const FOCUS_MODE_STYLES = {
+  backdrop: "fixed inset-0 bg-black/20 backdrop-blur-sm z-40",
+  container: {
+    base: "fixed z-50 w-auto max-w-5xl mx-auto shadow-2xl border-border h-auto overflow-y-auto",
+    /**
+     * Responsive spacing using explicit positioning to avoid width conflicts:
+     * - Mobile (< 640px): 8px margin (0.5rem)
+     * - Tablet (640-768px): 16px margin (1rem)
+     * - Desktop (> 768px): 32px margin (2rem)
+     */
+    spacing: "top-2 left-2 right-2 bottom-2 sm:top-4 sm:left-4 sm:right-4 sm:bottom-4 md:top-8 md:left-8 md:right-8 md:bottom-8",
+  },
+  transition: "transition-all duration-300 ease-in-out",
+  exitButton: "absolute top-2 right-2 z-10 opacity-60 hover:opacity-100",
+} as const;
 
 export interface Props {
   className?: string;
@@ -49,15 +78,26 @@ interface State {
   isRequesting: boolean;
   isComposing: boolean;
   isDraggingFile: boolean;
+  /** Whether Focus Mode (distraction-free writing) is enabled */
+  isFocusMode: boolean;
 }
 
 const MemoEditor = observer((props: Props) => {
+  // Local files for preview and upload
+  const [localFiles, setLocalFiles] = useState<LocalFile[]>([]);
+  // Clean up blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      localFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    };
+  }, [localFiles]);
   const { className, cacheKey, memoName, parentMemoName, autoFocus, onConfirm, onCancel } = props;
   const t = useTranslate();
   const { i18n } = useTranslation();
   const currentUser = useCurrentUser();
   const [state, setState] = useState<State>({
     memoVisibility: Visibility.PRIVATE,
+    isFocusMode: false,
     attachmentList: [],
     relationList: [],
     location: undefined,
@@ -149,8 +189,29 @@ const MemoEditor = observer((props: Props) => {
     }
 
     const isMetaKey = event.ctrlKey || event.metaKey;
+
+    // Focus Mode toggle: Cmd/Ctrl + Shift + F
+    if (isMetaKey && event.shiftKey && event.key.toLowerCase() === FOCUS_MODE_TOGGLE_KEY) {
+      event.preventDefault();
+      toggleFocusMode();
+      return;
+    }
+
+    // Exit Focus Mode: Escape
+    if (event.key === FOCUS_MODE_EXIT_KEY && state.isFocusMode) {
+      event.preventDefault();
+      toggleFocusMode();
+      return;
+    }
+
     if (isMetaKey) {
       if (event.key === "Enter") {
+        event.preventDefault();
+        handleSaveBtnClick();
+        return;
+      }
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
         handleSaveBtnClick();
         return;
       }
@@ -171,6 +232,21 @@ const MemoEditor = observer((props: Props) => {
     }
   };
 
+  /**
+   * Toggle Focus Mode on/off
+   * Focus Mode provides a distraction-free writing experience with:
+   * - Expanded editor taking ~80-90% of viewport
+   * - Semi-transparent backdrop
+   * - Centered layout with optimal width
+   * - All editor functionality preserved
+   */
+  const toggleFocusMode = () => {
+    setState((prevState) => ({
+      ...prevState,
+      isFocusMode: !prevState.isFocusMode,
+    }));
+  };
+
   const handleMemoVisibilityChange = (visibility: Visibility) => {
     setState((prevState) => ({
       ...prevState,
@@ -185,6 +261,20 @@ const MemoEditor = observer((props: Props) => {
     }));
   };
 
+  // Add local files from InsertMenu
+  const handleAddLocalFiles = (newFiles: LocalFile[]) => {
+    setLocalFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  // Remove a local file (e.g. on user remove)
+  const handleRemoveLocalFile = (previewUrl: string) => {
+    setLocalFiles((prev) => {
+      const toRemove = prev.find((f) => f.previewUrl === previewUrl);
+      if (toRemove) URL.revokeObjectURL(toRemove.previewUrl);
+      return prev.filter((f) => f.previewUrl !== previewUrl);
+    });
+  };
+
   const handleSetRelationList = (relationList: MemoRelation[]) => {
     setState((prevState) => ({
       ...prevState,
@@ -192,69 +282,14 @@ const MemoEditor = observer((props: Props) => {
     }));
   };
 
-  const handleUploadResource = async (file: File) => {
-    setState((state) => {
-      return {
-        ...state,
-        isUploadingAttachment: true,
-      };
-    });
-
-    const { name: filename, size, type } = file;
-    const buffer = new Uint8Array(await file.arrayBuffer());
-
-    try {
-      const attachment = await attachmentStore.createAttachment({
-        attachment: Attachment.fromPartial({
-          filename,
-          size,
-          type,
-          content: buffer,
-        }),
-        attachmentId: "",
-      });
-      setState((state) => {
-        return {
-          ...state,
-          isUploadingAttachment: false,
-        };
-      });
-      return attachment;
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.details);
-      setState((state) => {
-        return {
-          ...state,
-          isUploadingAttachment: false,
-        };
-      });
-    }
-  };
-
-  const uploadMultiFiles = async (files: FileList) => {
-    const uploadedAttachmentList: Attachment[] = [];
-    for (const file of files) {
-      const attachment = await handleUploadResource(file);
-      if (attachment) {
-        uploadedAttachmentList.push(attachment);
-        if (memoName) {
-          await attachmentStore.updateAttachment({
-            attachment: Attachment.fromPartial({
-              name: attachment.name,
-              memo: memoName,
-            }),
-            updateMask: ["memo"],
-          });
-        }
-      }
-    }
-    if (uploadedAttachmentList.length > 0) {
-      setState((prevState) => ({
-        ...prevState,
-        attachmentList: [...prevState.attachmentList, ...uploadedAttachmentList],
-      }));
-    }
+  // Add files to local state for preview (no upload yet)
+  const addFilesToLocal = (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const newLocalFiles: LocalFile[] = fileArray.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setLocalFiles((prev) => [...prev, ...newLocalFiles]);
   };
 
   const handleDropEvent = async (event: React.DragEvent) => {
@@ -265,7 +300,7 @@ const MemoEditor = observer((props: Props) => {
         isDraggingFile: false,
       }));
 
-      await uploadMultiFiles(event.dataTransfer.files);
+      addFilesToLocal(event.dataTransfer.files);
     }
   };
 
@@ -293,7 +328,7 @@ const MemoEditor = observer((props: Props) => {
   const handlePasteEvent = async (event: React.ClipboardEvent) => {
     if (event.clipboardData && event.clipboardData.files.length > 0) {
       event.preventDefault();
-      await uploadMultiFiles(event.clipboardData.files);
+      addFilesToLocal(event.clipboardData.files);
     } else if (
       editorRef.current != null &&
       editorRef.current.getSelectedContent().length != 0 &&
@@ -318,15 +353,35 @@ const MemoEditor = observer((props: Props) => {
       return;
     }
 
-    setState((state) => {
-      return {
-        ...state,
-        isRequesting: true,
-      };
-    });
+    setState((state) => ({ ...state, isRequesting: true }));
     const content = editorRef.current?.getContent() ?? "";
     try {
-      // Update memo.
+      // 1. Upload all local files and create attachments
+      const newAttachments: Attachment[] = [];
+      if (localFiles.length > 0) {
+        setState((state) => ({ ...state, isUploadingAttachment: true }));
+        try {
+          for (const { file } of localFiles) {
+            const buffer = new Uint8Array(await file.arrayBuffer());
+            const attachment = await attachmentStore.createAttachment({
+              attachment: Attachment.fromPartial({
+                filename: file.name,
+                size: file.size,
+                type: file.type,
+                content: buffer,
+              }),
+              attachmentId: "",
+            });
+            newAttachments.push(attachment);
+          }
+        } finally {
+          // Always reset upload state, even on error
+          setState((state) => ({ ...state, isUploadingAttachment: false }));
+        }
+      }
+      // 2. Update attachmentList with new attachments
+      const allAttachments = [...state.attachmentList, ...newAttachments];
+      // 3. Save memo (create or update)
       if (memoName) {
         const prevMemo = await memoStore.getOrFetchMemoByName(memoName);
         if (prevMemo) {
@@ -343,9 +398,9 @@ const MemoEditor = observer((props: Props) => {
             updateMask.add("visibility");
             memoPatch.visibility = state.memoVisibility;
           }
-          if (!isEqual(state.attachmentList, prevMemo.attachments)) {
+          if (!isEqual(allAttachments, prevMemo.attachments)) {
             updateMask.add("attachments");
-            memoPatch.attachments = state.attachmentList;
+            memoPatch.attachments = allAttachments;
           }
           if (!isEqual(state.relationList, prevMemo.relations)) {
             updateMask.add("relations");
@@ -385,7 +440,7 @@ const MemoEditor = observer((props: Props) => {
               memo: Memo.fromPartial({
                 content,
                 visibility: state.memoVisibility,
-                attachments: state.attachmentList,
+                attachments: allAttachments,
                 relations: state.relationList,
                 location: state.location,
               }),
@@ -409,6 +464,9 @@ const MemoEditor = observer((props: Props) => {
         }
       }
       editorRef.current?.setContent("");
+      // Clean up local files after successful save
+      localFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      setLocalFiles([]);
     } catch (error: any) {
       console.error(error);
       toast.error(error.details);
@@ -427,14 +485,6 @@ const MemoEditor = observer((props: Props) => {
     });
   };
 
-  const handleCancelBtnClick = () => {
-    localStorage.removeItem(contentCacheKey);
-
-    if (onCancel) {
-      onCancel();
-    }
-  };
-
   const handleEditorFocus = () => {
     editorRef.current?.focus();
   };
@@ -446,23 +496,23 @@ const MemoEditor = observer((props: Props) => {
       placeholder: props.placeholder ?? t("editor.any-thoughts"),
       onContentChange: handleContentChange,
       onPaste: handlePasteEvent,
+      isFocusMode: state.isFocusMode,
     }),
-    [i18n.language],
+    [i18n.language, state.isFocusMode],
   );
 
-  const allowSave = (hasContent || state.attachmentList.length > 0) && !state.isUploadingAttachment && !state.isRequesting;
+  const allowSave =
+    (hasContent || state.attachmentList.length > 0 || localFiles.length > 0) && !state.isUploadingAttachment && !state.isRequesting;
 
   return (
     <MemoEditorContext.Provider
       value={{
         attachmentList: state.attachmentList,
         relationList: state.relationList,
-        setAttachmentList: (attachmentList: Attachment[]) => {
-          setState((prevState) => ({
-            ...prevState,
-            attachmentList,
-          }));
-        },
+        setAttachmentList: handleSetAttachmentList,
+        addLocalFiles: handleAddLocalFiles,
+        removeLocalFile: handleRemoveLocalFile,
+        localFiles,
         setRelationList: (relationList: MemoRelation[]) => {
           setState((prevState) => ({
             ...prevState,
@@ -472,10 +522,15 @@ const MemoEditor = observer((props: Props) => {
         memoName,
       }}
     >
+      {/* Focus Mode Backdrop */}
+      {state.isFocusMode && <div className={FOCUS_MODE_STYLES.backdrop} onClick={toggleFocusMode} />}
+
       <div
         className={cn(
           "group relative w-full flex flex-col justify-start items-start bg-card px-4 pt-3 pb-2 rounded-lg border",
+          FOCUS_MODE_STYLES.transition,
           state.isDraggingFile ? "border-dashed border-muted-foreground cursor-copy" : "border-border cursor-auto",
+          state.isFocusMode && cn(FOCUS_MODE_STYLES.container.base, FOCUS_MODE_STYLES.container.spacing),
           className,
         )}
         tabIndex={0}
@@ -487,6 +542,19 @@ const MemoEditor = observer((props: Props) => {
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
       >
+        {/* Focus Mode Exit Button */}
+        {state.isFocusMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={FOCUS_MODE_STYLES.exitButton}
+            onClick={toggleFocusMode}
+            title={t("editor.exit-focus-mode")}
+          >
+            <Minimize2Icon className="w-4 h-4" />
+          </Button>
+        )}
+
         <Editor ref={editorRef} {...editorConfig} />
         <LocationDisplay
           mode="edit"
@@ -498,7 +566,14 @@ const MemoEditor = observer((props: Props) => {
             }))
           }
         />
-        <AttachmentList mode="edit" attachments={state.attachmentList} onAttachmentsChange={handleSetAttachmentList} />
+        {/* Show attachments and pending files together */}
+        <AttachmentList
+          mode="edit"
+          attachments={state.attachmentList}
+          onAttachmentsChange={handleSetAttachmentList}
+          localFiles={localFiles}
+          onRemoveLocalFile={handleRemoveLocalFile}
+        />
         <RelationList mode="edit" relations={referenceRelations} onRelationsChange={handleSetRelationList} />
         <div className="relative w-full flex flex-row justify-between items-center pt-2 gap-2" onFocus={(e) => e.stopPropagation()}>
           <div className="flex flex-row justify-start items-center gap-1">
@@ -511,13 +586,22 @@ const MemoEditor = observer((props: Props) => {
                   location,
                 }))
               }
+              onToggleFocusMode={toggleFocusMode}
             />
           </div>
           <div className="shrink-0 flex flex-row justify-end items-center">
             <VisibilitySelector value={state.memoVisibility} onChange={(visibility) => handleMemoVisibilityChange(visibility)} />
             <div className="flex flex-row justify-end gap-1">
               {props.onCancel && (
-                <Button variant="ghost" disabled={state.isRequesting} onClick={handleCancelBtnClick}>
+                <Button
+                  variant="ghost"
+                  disabled={state.isRequesting}
+                  onClick={() => {
+                    localFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+                    setLocalFiles([]);
+                    if (props.onCancel) props.onCancel();
+                  }}
+                >
                   {t("common.cancel")}
                 </Button>
               )}

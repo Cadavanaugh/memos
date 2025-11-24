@@ -14,16 +14,52 @@ import { visit } from "unist-util-visit";
  *   #tag1/subtag/subtag2 → <span class="tag" data-tag="tag1/subtag/subtag2">#tag1/subtag/subtag2</span>
  *
  * Rules:
- * - Tag must start with # followed by alphanumeric, underscore, hyphen, or forward slash
- * - Tag ends at whitespace, punctuation (except -, _, /), or end of line
+ * - Tag must start with # followed by valid tag characters
+ * - Valid characters: Unicode letters, Unicode digits, underscore (_), hyphen (-), forward slash (/)
+ * - Maximum length: 100 characters
+ * - Stops at: whitespace, punctuation, or other invalid characters
  * - Tags at start of line after ## are headings, not tags
  */
 
+const MAX_TAG_LENGTH = 100;
+
 /**
- * Check if character is valid for tag content
+ * Check if character is valid for tag content using Unicode categories.
+ * Uses Unicode property escapes for proper international character support.
+ *
+ * Valid characters:
+ * - \p{L}: Unicode letters (any script: Latin, CJK, Arabic, Cyrillic, etc.)
+ * - \p{N}: Unicode numbers/digits
+ * - \p{S}: Unicode symbols (includes emoji)
+ * - Special symbols: underscore (_), hyphen (-), forward slash (/)
  */
 function isTagChar(char: string): boolean {
-  return /[a-zA-Z0-9_\-/]/.test(char);
+  // Allow Unicode letters (any script)
+  if (/\p{L}/u.test(char)) {
+    return true;
+  }
+
+  // Allow Unicode digits
+  if (/\p{N}/u.test(char)) {
+    return true;
+  }
+
+  // Allow Unicode symbols (includes emoji)
+  // This makes tags compatible with social media platforms
+  if (/\p{S}/u.test(char)) {
+    return true;
+  }
+
+  // Allow specific symbols for tag structure
+  // Underscore: word separation (snake_case)
+  // Hyphen: word separation (kebab-case)
+  // Forward slash: hierarchical tags (category/subcategory)
+  if (char === "_" || char === "-" || char === "/") {
+    return true;
+  }
+
+  // Everything else is invalid (whitespace, punctuation, control chars)
+  return false;
 }
 
 /**
@@ -55,8 +91,8 @@ function parseTagsFromText(text: string): Array<{ type: "text" | "tag"; value: s
 
       const tagContent = text.slice(i + 1, j);
 
-      // Validate tag length
-      if (tagContent.length > 0 && tagContent.length <= 100) {
+      // Validate tag length (must match backend MAX_TAG_LENGTH)
+      if (tagContent.length > 0 && tagContent.length <= MAX_TAG_LENGTH) {
         segments.push({ type: "tag", value: tagContent });
         i = j;
         continue;
