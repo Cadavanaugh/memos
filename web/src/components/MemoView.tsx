@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useNavigateTo from "@/hooks/useNavigateTo";
+import i18n from "@/i18n";
 import { cn } from "@/lib/utils";
 import { instanceStore, memoStore, userStore } from "@/store";
 import { State } from "@/types/proto/api/v1/common";
@@ -233,7 +234,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
       minute: "numeric",
     })
   ) : (
-    <relative-time datetime={memo.displayTime?.toISOString()} format={relativeTimeFormat}></relative-time>
+    <relative-time datetime={memo.displayTime?.toISOString()} lang={i18n.language} format={relativeTimeFormat}></relative-time>
   );
 
   return showEditor ? (
@@ -248,8 +249,7 @@ const MemoView: React.FC<Props> = observer((props: Props) => {
   ) : (
     <div
       className={cn(
-        "relative group flex flex-col justify-start items-start bg-card w-full px-4 py-3 mb-2 gap-2 text-card-foreground rounded-lg border border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        shortcutActive && !showEditor && "border-ring ring-2 ring-ring bg-accent/10",
+        "relative group flex flex-col justify-start items-start bg-card w-full px-4 py-3 mb-2 gap-2 text-card-foreground rounded-lg border border-border transition-colors",
         className,
       )}
       ref={cardRef}
