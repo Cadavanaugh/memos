@@ -294,7 +294,6 @@
     "memo-related-settings": {
       "content-lenght-limit": "Limite de comprimento do conteúdo (Bytes)",
       "enable-blur-nsfw-content": "Ativar desfoque de conteúdo sensível (NSFW)",
-      "enable-link-preview": "Ativar pré-visualização de links",
       "enable-memo-comments": "Ativar comentários em memos",
       "enable-memo-location": "Ativar localização em memos",
       "reactions": "Reações",
@@ -380,7 +379,6 @@
         "locale": "Localização do Servidor",
         "title": "Personalizar Servidor"
       },
-      "disable-markdown-shortcuts-in-editor": "Desativar atalhos Markdown no editor",
       "disable-password-login": "Desativar login por palavra-passe",
       "disable-password-login-final-warning": "Escreva \"CONFIRM\" se tiver a certeza.",
       "disable-password-login-warning": "Isto desativará o login por palavra-passe para todos os utilizadores. Não será possível iniciar sessão sem reverter esta definição na base de dados se os seus provedores de identidade falharem. Deve ter cuidado ao remover um provedor de identidade.",

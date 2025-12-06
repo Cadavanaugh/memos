@@ -294,7 +294,6 @@
     "memo-related-settings": {
       "content-lenght-limit": "Limite lunghezza contenuto (Byte)",
       "enable-blur-nsfw-content": "Abilita sfocatura contenuti sensibili (NSFW)",
-      "enable-link-preview": "Abilita anteprima link",
       "enable-memo-comments": "Abilita commenti memo",
       "enable-memo-location": "Abilita posizione memo",
       "reactions": "Reazioni",
@@ -380,7 +379,6 @@
         "locale": "Locale server",
         "title": "Personalizza server"
       },
-      "disable-markdown-shortcuts-in-editor": "Disabilita scorciatoie Markdown nell'editor",
       "disable-password-login": "Disabilita login password",
       "disable-password-login-final-warning": "Digita \"CONFIRM\" se sai cosa stai facendo.",
       "disable-password-login-warning": "Ciò disabiliterà l'accesso tramite password per tutti gli utenti. Non è possibile accedere senza ripristinare questa impostazione nel database se i provider di identità configurati falliscono. Dovrai anche prestare molta attenzione quando rimuovi un provider di identità",

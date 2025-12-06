@@ -313,9 +313,6 @@ func (x *InstanceBasicSetting) GetSchemaVersion() string {
 
 type InstanceGeneralSetting struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// theme is the name of the selected theme.
-	// This references a CSS file in the web/public/themes/ directory.
-	Theme string `protobuf:"bytes,1,opt,name=theme,proto3" json:"theme,omitempty"`
 	// disallow_user_registration disallows user registration.
 	DisallowUserRegistration bool `protobuf:"varint,2,opt,name=disallow_user_registration,json=disallowUserRegistration,proto3" json:"disallow_user_registration,omitempty"`
 	// disallow_password_auth disallows password authentication.
@@ -366,13 +363,6 @@ func (x *InstanceGeneralSetting) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InstanceGeneralSetting.ProtoReflect.Descriptor instead.
 func (*InstanceGeneralSetting) Descriptor() ([]byte, []int) {
 	return file_store_instance_setting_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *InstanceGeneralSetting) GetTheme() string {
-	if x != nil {
-		return x.Theme
-	}
-	return ""
 }
 
 func (x *InstanceGeneralSetting) GetDisallowUserRegistration() bool {
@@ -436,7 +426,6 @@ type InstanceCustomProfile struct {
 	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	LogoUrl       string                 `protobuf:"bytes,3,opt,name=logo_url,json=logoUrl,proto3" json:"logo_url,omitempty"`
-	Locale        string                 `protobuf:"bytes,4,opt,name=locale,proto3" json:"locale,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -488,13 +477,6 @@ func (x *InstanceCustomProfile) GetDescription() string {
 func (x *InstanceCustomProfile) GetLogoUrl() string {
 	if x != nil {
 		return x.LogoUrl
-	}
-	return ""
-}
-
-func (x *InstanceCustomProfile) GetLocale() string {
-	if x != nil {
-		return x.Locale
 	}
 	return ""
 }
@@ -667,12 +649,8 @@ type InstanceMemoRelatedSetting struct {
 	ContentLengthLimit int32 `protobuf:"varint,3,opt,name=content_length_limit,json=contentLengthLimit,proto3" json:"content_length_limit,omitempty"`
 	// enable_double_click_edit enables editing on double click.
 	EnableDoubleClickEdit bool `protobuf:"varint,4,opt,name=enable_double_click_edit,json=enableDoubleClickEdit,proto3" json:"enable_double_click_edit,omitempty"`
-	// enable_link_preview enables links preview.
-	EnableLinkPreview bool `protobuf:"varint,5,opt,name=enable_link_preview,json=enableLinkPreview,proto3" json:"enable_link_preview,omitempty"`
 	// reactions is the list of reactions.
 	Reactions []string `protobuf:"bytes,7,rep,name=reactions,proto3" json:"reactions,omitempty"`
-	// disable markdown shortcuts
-	DisableMarkdownShortcuts bool `protobuf:"varint,8,opt,name=disable_markdown_shortcuts,json=disableMarkdownShortcuts,proto3" json:"disable_markdown_shortcuts,omitempty"`
 	// enable_blur_nsfw_content enables blurring of content marked as not safe for work (NSFW).
 	EnableBlurNsfwContent bool `protobuf:"varint,9,opt,name=enable_blur_nsfw_content,json=enableBlurNsfwContent,proto3" json:"enable_blur_nsfw_content,omitempty"`
 	// nsfw_tags is the list of tags that mark content as NSFW for blurring.
@@ -739,25 +717,11 @@ func (x *InstanceMemoRelatedSetting) GetEnableDoubleClickEdit() bool {
 	return false
 }
 
-func (x *InstanceMemoRelatedSetting) GetEnableLinkPreview() bool {
-	if x != nil {
-		return x.EnableLinkPreview
-	}
-	return false
-}
-
 func (x *InstanceMemoRelatedSetting) GetReactions() []string {
 	if x != nil {
 		return x.Reactions
 	}
 	return nil
-}
-
-func (x *InstanceMemoRelatedSetting) GetDisableMarkdownShortcuts() bool {
-	if x != nil {
-		return x.DisableMarkdownShortcuts
-	}
-	return false
 }
 
 func (x *InstanceMemoRelatedSetting) GetEnableBlurNsfwContent() bool {
@@ -789,9 +753,8 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\x14InstanceBasicSetting\x12\x1d\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12%\n" +
-	"\x0eschema_version\x18\x02 \x01(\tR\rschemaVersion\"\xec\x03\n" +
-	"\x16InstanceGeneralSetting\x12\x14\n" +
-	"\x05theme\x18\x01 \x01(\tR\x05theme\x12<\n" +
+	"\x0eschema_version\x18\x02 \x01(\tR\rschemaVersion\"\xd6\x03\n" +
+	"\x16InstanceGeneralSetting\x12<\n" +
 	"\x1adisallow_user_registration\x18\x02 \x01(\bR\x18disallowUserRegistration\x124\n" +
 	"\x16disallow_password_auth\x18\x03 \x01(\bR\x14disallowPasswordAuth\x12+\n" +
 	"\x11additional_script\x18\x04 \x01(\tR\x10additionalScript\x12)\n" +
@@ -799,12 +762,11 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\x0ecustom_profile\x18\x06 \x01(\v2\".memos.store.InstanceCustomProfileR\rcustomProfile\x121\n" +
 	"\x15week_start_day_offset\x18\a \x01(\x05R\x12weekStartDayOffset\x128\n" +
 	"\x18disallow_change_username\x18\b \x01(\bR\x16disallowChangeUsername\x128\n" +
-	"\x18disallow_change_nickname\x18\t \x01(\bR\x16disallowChangeNickname\"\x82\x01\n" +
+	"\x18disallow_change_nickname\x18\t \x01(\bR\x16disallowChangeNickname\"j\n" +
 	"\x15InstanceCustomProfile\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x19\n" +
-	"\blogo_url\x18\x03 \x01(\tR\alogoUrl\x12\x16\n" +
-	"\x06locale\x18\x04 \x01(\tR\x06locale\"\xd3\x02\n" +
+	"\blogo_url\x18\x03 \x01(\tR\alogoUrl\"\xd3\x02\n" +
 	"\x16InstanceStorageSetting\x12R\n" +
 	"\fstorage_type\x18\x01 \x01(\x0e2/.memos.store.InstanceStorageSetting.StorageTypeR\vstorageType\x12+\n" +
 	"\x11filepath_template\x18\x02 \x01(\tR\x10filepathTemplate\x12/\n" +
@@ -821,15 +783,13 @@ const file_store_instance_setting_proto_rawDesc = "" +
 	"\bendpoint\x18\x03 \x01(\tR\bendpoint\x12\x16\n" +
 	"\x06region\x18\x04 \x01(\tR\x06region\x12\x16\n" +
 	"\x06bucket\x18\x05 \x01(\tR\x06bucket\x12$\n" +
-	"\x0euse_path_style\x18\x06 \x01(\bR\fusePathStyle\"\xe0\x03\n" +
+	"\x0euse_path_style\x18\x06 \x01(\bR\fusePathStyle\"\xf2\x02\n" +
 	"\x1aInstanceMemoRelatedSetting\x12<\n" +
 	"\x1adisallow_public_visibility\x18\x01 \x01(\bR\x18disallowPublicVisibility\x127\n" +
 	"\x18display_with_update_time\x18\x02 \x01(\bR\x15displayWithUpdateTime\x120\n" +
 	"\x14content_length_limit\x18\x03 \x01(\x05R\x12contentLengthLimit\x127\n" +
-	"\x18enable_double_click_edit\x18\x04 \x01(\bR\x15enableDoubleClickEdit\x12.\n" +
-	"\x13enable_link_preview\x18\x05 \x01(\bR\x11enableLinkPreview\x12\x1c\n" +
-	"\treactions\x18\a \x03(\tR\treactions\x12<\n" +
-	"\x1adisable_markdown_shortcuts\x18\b \x01(\bR\x18disableMarkdownShortcuts\x127\n" +
+	"\x18enable_double_click_edit\x18\x04 \x01(\bR\x15enableDoubleClickEdit\x12\x1c\n" +
+	"\treactions\x18\a \x03(\tR\treactions\x127\n" +
 	"\x18enable_blur_nsfw_content\x18\t \x01(\bR\x15enableBlurNsfwContent\x12\x1b\n" +
 	"\tnsfw_tags\x18\n" +
 	" \x03(\tR\bnsfwTags*q\n" +

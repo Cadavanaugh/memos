@@ -7,16 +7,6 @@ import { memoFilterStore } from "@/store";
 import { MemoFilter, stringifyFilters } from "@/store/memoFilter";
 import { MemoContentContext } from "./MemoContentContext";
 
-/**
- * Custom span component for #tag elements
- *
- * Handles tag clicks for filtering memos.
- * The remark-tag plugin creates span elements with class="tag".
- *
- * Note: This component should only be used for tags.
- * Regular spans are handled by the default span element.
- */
-
 interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   node?: any; // AST node from react-markdown
   "data-tag"?: string;
@@ -51,6 +41,8 @@ export const Tag: React.FC<TagProps> = ({ "data-tag": dataTag, children, classNa
     if (isActive) {
       memoFilterStore.removeFilter((f: MemoFilter) => f.factor === "tagSearch" && f.value === tag);
     } else {
+      // Remove all existing tag filters first, then add the new one
+      memoFilterStore.removeFilter((f: MemoFilter) => f.factor === "tagSearch");
       memoFilterStore.addFilter({
         factor: "tagSearch",
         value: tag,

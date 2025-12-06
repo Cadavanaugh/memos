@@ -4,9 +4,9 @@ import { useState } from "react";
 import type { Attachment } from "@/types/proto/api/v1/attachment_service";
 import { getAttachmentType, getAttachmentUrl } from "@/utils/attachment";
 import MemoAttachment from "../MemoAttachment";
-import SortableItem from "../MemoEditor/SortableItem";
 import PreviewImageDialog from "../PreviewImageDialog";
 import AttachmentCard from "./AttachmentCard";
+import SortableItem from "./SortableItem";
 import type { AttachmentItem, BaseMetadataProps, LocalFile } from "./types";
 import { separateMediaAndDocs, toAttachmentItems } from "./types";
 
@@ -17,20 +17,6 @@ interface AttachmentListProps extends BaseMetadataProps {
   onRemoveLocalFile?: (previewUrl: string) => void;
 }
 
-/**
- * Unified AttachmentList component for both editor and view modes
- *
- * Editor mode:
- * - Shows all attachments as sortable badges with thumbnails
- * - Supports drag-and-drop reordering
- * - Shows remove buttons
- * - Shows pending files (not yet uploaded) with preview
- *
- * View mode:
- * - Separates media (images/videos) from other files
- * - Shows media in gallery layout with preview
- * - Shows other files as clickable cards
- */
 const AttachmentList = ({ attachments, mode, onAttachmentsChange, localFiles = [], onRemoveLocalFile }: AttachmentListProps) => {
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
   const [previewImage, setPreviewImage] = useState<{ open: boolean; urls: string[]; index: number }>({

@@ -1,4 +1,8 @@
-import { Command } from "@/components/MemoEditor/types/command";
+export interface Command {
+  name: string;
+  run: () => string;
+  cursorOffset?: number;
+}
 
 export const editorCommands: Command[] = [
   {

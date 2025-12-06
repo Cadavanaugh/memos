@@ -294,7 +294,6 @@
     "memo-related-settings": {
       "content-lenght-limit": "Limit długości treści (Bajty)",
       "enable-blur-nsfw-content": "Włącz rozmycie treści NSFW",
-      "enable-link-preview": "Włącz podgląd linków",
       "enable-memo-comments": "Włącz komentarze do notatek",
       "enable-memo-location": "Włącz lokalizację notatek",
       "reactions": "Reakcje",
@@ -380,7 +379,6 @@
         "locale": "Język serwera",
         "title": "Dostosuj serwer"
       },
-      "disable-markdown-shortcuts-in-editor": "Wyłącz skróty Markdown w edytorze",
       "disable-password-login": "Wyłącz logowanie hasłem",
       "disable-password-login-final-warning": "Proszę wpisać \"CONFIRM\", jeśli wiesz, co robisz.",
       "disable-password-login-warning": "To wyłączy logowanie hasłem dla wszystkich użytkowników. Jeśli skonfigurowani dostawcy tożsamości zawiodą, nie będzie możliwe zalogowanie się bez przywrócenia tego ustawienia w bazie danych. Bądź także szczególnie ostrożny przy usuwaniu dostawcy tożsamości",

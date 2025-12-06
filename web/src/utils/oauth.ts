@@ -1,9 +1,3 @@
-/**
- * OAuth state management utilities
- * Implements secure state parameter handling following Auth0 best practices
- * @see https://auth0.com/docs/secure/attack-protection/state-parameters
- */
-
 const STATE_STORAGE_KEY = "oauth_state";
 const STATE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -12,29 +6,52 @@ interface OAuthState {
   identityProviderId: number;
   timestamp: number;
   returnUrl?: string;
+  codeVerifier?: string; // PKCE code_verifier
 }
 
-/**
- * Generate a cryptographically secure random state value
- * Uses Web Crypto API for strong randomness
- */
+// Generate a cryptographically secure random state value
 function generateSecureState(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * Store OAuth state in sessionStorage with metadata
- * State is stored temporarily and will be validated on callback
- */
-export function storeOAuthState(identityProviderId: number, returnUrl?: string): string {
+// Generate a cryptographically secure random code_verifier for PKCE (RFC 7636)
+// Returns a URL-safe base64 string (43-128 characters)
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32); // 256 bits = 32 bytes
+  crypto.getRandomValues(array);
+  // Convert to base64url (URL-safe base64 without padding)
+  return base64UrlEncode(array);
+}
+
+// Generate code_challenge from code_verifier using SHA-256
+async function generateCodeChallenge(codeVerifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return base64UrlEncode(new Uint8Array(hash));
+}
+
+// Base64URL encoding (RFC 4648 base64url without padding)
+function base64UrlEncode(buffer: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...buffer));
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Store OAuth state and PKCE parameters in sessionStorage
+// Returns both state and codeChallenge for use in authorization URL
+export async function storeOAuthState(identityProviderId: number, returnUrl?: string): Promise<{ state: string; codeChallenge: string }> {
   const state = generateSecureState();
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
   const stateData: OAuthState = {
     state,
     identityProviderId,
     timestamp: Date.now(),
     returnUrl,
+    codeVerifier, // Store for later retrieval in callback
   };
 
   try {
@@ -44,15 +61,12 @@ export function storeOAuthState(identityProviderId: number, returnUrl?: string):
     throw new Error("Failed to initialize OAuth flow");
   }
 
-  return state;
+  return { state, codeChallenge };
 }
 
-/**
- * Validate and retrieve OAuth state from storage
- * Implements CSRF protection by verifying state matches
- * Cleans up expired or used states
- */
-export function validateOAuthState(stateParam: string): { identityProviderId: number; returnUrl?: string } | null {
+// Validate and retrieve OAuth state from storage (CSRF protection)
+// Returns identityProviderId, returnUrl, and codeVerifier for PKCE
+export function validateOAuthState(stateParam: string): { identityProviderId: number; returnUrl?: string; codeVerifier?: string } | null {
   try {
     const storedData = sessionStorage.getItem(STATE_STORAGE_KEY);
     if (!storedData) {
@@ -81,6 +95,7 @@ export function validateOAuthState(stateParam: string): { identityProviderId: nu
     return {
       identityProviderId: stateData.identityProviderId,
       returnUrl: stateData.returnUrl,
+      codeVerifier: stateData.codeVerifier, // Return PKCE code_verifier
     };
   } catch (error) {
     console.error("Failed to validate OAuth state:", error);
@@ -89,10 +104,7 @@ export function validateOAuthState(stateParam: string): { identityProviderId: nu
   }
 }
 
-/**
- * Clean up expired OAuth states
- * Should be called on app initialization
- */
+// Clean up expired OAuth states (call on app init)
 export function cleanupExpiredOAuthState(): void {
   try {
     const storedData = sessionStorage.getItem(STATE_STORAGE_KEY);

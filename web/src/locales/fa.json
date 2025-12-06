@@ -269,7 +269,6 @@
     "memo-related-settings": {
       "content-lenght-limit": "محدودیت طول محتوا (بایت)",
       "enable-blur-nsfw-content": "فعال‌سازی تار کردن محتوای حساس (NSFW)",
-      "enable-link-preview": "فعال‌سازی پیش‌نمایش لینک",
       "enable-memo-comments": "فعال‌سازی نظرات یادداشت",
       "enable-memo-location": "فعال‌سازی موقعیت یادداشت",
       "reactions": "واکنش‌ها",
@@ -355,7 +354,6 @@
         "locale": "زبان سرور",
         "title": "سفارشی‌سازی سرور"
       },
-      "disable-markdown-shortcuts-in-editor": "غیرفعال‌سازی میانبرهای Markdown در ویرایشگر",
       "disable-password-login": "غیرفعال‌سازی ورود با گذرواژه",
       "disable-password-login-final-warning": "لطفاً اگر مطمئن هستید \"CONFIRM\" را وارد کنید.",
       "disable-password-login-warning": "این کار ورود با گذرواژه را برای همه کاربران غیرفعال می‌کند. اگر ارائه‌دهندگان هویت شما از کار بیفتند، بدون بازگرداندن این تنظیم در پایگاه داده، ورود ممکن نیست. هنگام حذف ارائه‌دهنده هویت دقت کنید.",

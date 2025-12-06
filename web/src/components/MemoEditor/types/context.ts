@@ -3,19 +3,18 @@ import type { Attachment } from "@/types/proto/api/v1/attachment_service";
 import type { MemoRelation } from "@/types/proto/api/v1/memo_service";
 import type { LocalFile } from "../../memo-metadata";
 
-interface Context {
+export interface MemoEditorContextValue {
   attachmentList: Attachment[];
   relationList: MemoRelation[];
   setAttachmentList: (attachmentList: Attachment[]) => void;
   setRelationList: (relationList: MemoRelation[]) => void;
   memoName?: string;
-  // For local file upload/preview
   addLocalFiles?: (files: LocalFile[]) => void;
   removeLocalFile?: (previewUrl: string) => void;
   localFiles?: LocalFile[];
 }
 
-export const MemoEditorContext = createContext<Context>({
+const defaultContextValue: MemoEditorContextValue = {
   attachmentList: [],
   relationList: [],
   setAttachmentList: () => {},
@@ -23,4 +22,6 @@ export const MemoEditorContext = createContext<Context>({
   addLocalFiles: () => {},
   removeLocalFile: () => {},
   localFiles: [],
-});
+};
+
+export const MemoEditorContext = createContext<MemoEditorContextValue>(defaultContextValue);

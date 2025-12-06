@@ -309,7 +309,6 @@
     "memo-related-settings": {
       "content-lenght-limit": "內容長度限制（位元組）",
       "enable-blur-nsfw-content": "啟用 NSFW 內容模糊化（在下方添加 NSFW 標籤）",
-      "enable-link-preview": "啟用預覽連結",
       "enable-memo-comments": "啟用備忘錄評論",
       "enable-memo-location": "啟用備忘錄定位",
       "reactions": "表情回應",
@@ -399,7 +398,6 @@
         "locale": "語言",
         "title": "自訂伺服器"
       },
-      "disable-markdown-shortcuts-in-editor": "停用編輯器 Markdown 快捷鍵",
       "disable-password-login": "停用密碼登入",
       "disable-password-login-final-warning": "如果您知道自己在做什麼，請輸入 `CONFIRM`。",
       "disable-password-login-warning": "所有使用者將無法使用密碼登入。如果設定的身份識別提供者失效，不在資料庫中恢復此設定將無法登入。刪除身分識別提供者時也要特別小心❗",

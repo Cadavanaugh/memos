@@ -84,24 +84,10 @@ const MemoRelatedSettings = observer(() => {
           />
         </SettingRow>
 
-        <SettingRow label={t("setting.memo-related-settings.enable-link-preview")}>
-          <Switch
-            checked={memoRelatedSetting.enableLinkPreview}
-            onCheckedChange={(checked) => updatePartialSetting({ enableLinkPreview: checked })}
-          />
-        </SettingRow>
-
         <SettingRow label={t("setting.system-section.enable-double-click-to-edit")}>
           <Switch
             checked={memoRelatedSetting.enableDoubleClickEdit}
             onCheckedChange={(checked) => updatePartialSetting({ enableDoubleClickEdit: checked })}
-          />
-        </SettingRow>
-
-        <SettingRow label={t("setting.system-section.disable-markdown-shortcuts-in-editor")}>
-          <Switch
-            checked={memoRelatedSetting.disableMarkdownShortcuts}
-            onCheckedChange={(checked) => updatePartialSetting({ disableMarkdownShortcuts: checked })}
           />
         </SettingRow>
 

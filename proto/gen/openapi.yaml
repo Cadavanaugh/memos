@@ -2159,6 +2159,11 @@ components:
                     description: |-
                         The redirect URI used in the SSO flow.
                          Required field for security validation.
+                codeVerifier:
+                    type: string
+                    description: |-
+                        The PKCE code verifier for enhanced security (RFC 7636).
+                         Optional field - if provided, enables PKCE flow protection against authorization code interception.
             description: Nested message for SSO authentication credentials.
         CreateSessionResponse:
             type: object
@@ -2192,8 +2197,6 @@ components:
                 description:
                     type: string
                 logoUrl:
-                    type: string
-                locale:
                     type: string
             description: Custom profile configuration for instance branding.
         GetCurrentSessionResponse:
@@ -2285,11 +2288,6 @@ components:
         InstanceSetting_GeneralSetting:
             type: object
             properties:
-                theme:
-                    type: string
-                    description: |-
-                        theme is the name of the selected theme.
-                         This references a CSS file in the web/public/themes/ directory.
                 disallowUserRegistration:
                     type: boolean
                     description: disallow_user_registration disallows user registration.
@@ -2336,17 +2334,11 @@ components:
                 enableDoubleClickEdit:
                     type: boolean
                     description: enable_double_click_edit enables editing on double click.
-                enableLinkPreview:
-                    type: boolean
-                    description: enable_link_preview enables links preview.
                 reactions:
                     type: array
                     items:
                         type: string
                     description: reactions is the list of reactions.
-                disableMarkdownShortcuts:
-                    type: boolean
-                    description: disable_markdown_shortcuts disallow the registration of markdown shortcuts.
                 enableBlurNsfwContent:
                     type: boolean
                     description: enable_blur_nsfw_content enables blurring of content marked as not safe for work (NSFW).
