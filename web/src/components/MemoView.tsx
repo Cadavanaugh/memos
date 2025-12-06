@@ -1,4 +1,3 @@
-import i18n from "i18next";
 import { BookmarkIcon, EyeOffIcon, MessageCircleMoreIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
