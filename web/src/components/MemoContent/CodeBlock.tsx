@@ -1,19 +1,21 @@
+import copy from "copy-to-clipboard";
 import hljs from "highlight.js";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { userStore } from "@/store";
 import { getThemeWithFallback, resolveTheme } from "@/utils/theme";
 import { MermaidBlock } from "./MermaidBlock";
+import type { ReactMarkdownProps } from "./markdown/types";
 import { extractCodeContent, extractLanguage } from "./utils";
 
-interface CodeBlockProps {
+interface CodeBlockProps extends ReactMarkdownProps {
   children?: React.ReactNode;
   className?: string;
 }
 
-export const CodeBlock = observer(({ children, className, ...props }: CodeBlockProps) => {
+export const CodeBlock = ({ children, className, node: _node, ...props }: CodeBlockProps) => {
+  const { userGeneralSetting } = useAuth();
   const [copied, setCopied] = useState(false);
 
   const codeElement = children as React.ReactElement;
@@ -24,13 +26,15 @@ export const CodeBlock = observer(({ children, className, ...props }: CodeBlockP
   // If it's a mermaid block, render with MermaidBlock component
   if (language === "mermaid") {
     return (
-      <MermaidBlock className={className} {...props}>
-        {children}
-      </MermaidBlock>
+      <pre className="relative">
+        <MermaidBlock className={cn(className)} {...props}>
+          {children}
+        </MermaidBlock>
+      </pre>
     );
   }
 
-  const theme = getThemeWithFallback(userStore.state.userGeneralSetting?.theme);
+  const theme = getThemeWithFallback(userGeneralSetting?.theme);
   const resolvedTheme = resolveTheme(theme);
   const isDarkTheme = resolvedTheme.includes("dark");
 
@@ -82,30 +86,71 @@ export const CodeBlock = observer(({ children, className, ...props }: CodeBlockP
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(codeContent);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Try native clipboard API first (requires HTTPS or localhost)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(codeContent);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Fallback to copy-to-clipboard library for non-secure contexts
+        const success = copy(codeContent);
+        if (success) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } else {
+          console.error("Failed to copy code");
+        }
+      }
     } catch (err) {
-      console.error("Failed to copy code:", err);
+      // If native API fails, try fallback
+      console.warn("Native clipboard failed, using fallback:", err);
+      const success = copy(codeContent);
+      if (success) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        console.error("Failed to copy code:", err);
+      }
     }
   };
 
   return (
-    <pre className="relative group">
-      <div className="w-full flex flex-row justify-between items-center">
-        <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider select-none">{language}</span>
+    <pre className="relative my-2 rounded-lg border border-border bg-muted/30 overflow-hidden">
+      {/* Header with language label and copy button */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-accent/50">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide select-none">{language || "text"}</span>
         <button
           onClick={handleCopy}
-          className={cn("p-1.5 rounded-md transition-all", "hover:bg-accent/50", copied ? "text-primary" : "text-muted-foreground")}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium",
+            "transition-all duration-200",
+            "hover:bg-accent active:scale-95",
+            copied ? "text-primary bg-primary/10" : "text-muted-foreground",
+          )}
           aria-label={copied ? "Copied" : "Copy code"}
           title={copied ? "Copied!" : "Copy code"}
         >
-          {copied ? <CheckIcon className="w-3.5 h-3.5" /> : <CopyIcon className="w-3.5 h-3.5" />}
+          {copied ? (
+            <>
+              <CheckIcon className="w-3.5 h-3.5" />
+              <span>Copied</span>
+            </>
+          ) : (
+            <>
+              <CopyIcon className="w-3.5 h-3.5" />
+              <span>Copy</span>
+            </>
+          )}
         </button>
       </div>
-      <div className={className} {...props}>
-        <code className={`language-${language}`} dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+
+      {/* Code content */}
+      <div className="overflow-x-auto">
+        <code
+          className={cn("block px-3 py-2 text-sm leading-relaxed", `language-${language}`)}
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+        />
       </div>
     </pre>
   );
-});
+};

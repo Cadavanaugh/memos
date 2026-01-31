@@ -152,8 +152,6 @@
     "no-archived-memos": "कोई संग्रहीत मेमो नहीं।",
     "no-memos": "कोई मेमो नहीं।",
     "order-by": "क्रमबद्ध करें",
-    "remove-completed-task-list-items": "पूरा किए गए हटाएँ",
-    "remove-completed-task-list-items-confirm": "क्या आप सभी पूरे कार्यों को हटाना चाहते हैं? यह कार्रवाई वापस नहीं की जा सकती।",
     "search-placeholder": "मेमो खोजें...",
     "show-less": "कम दिखाएँ",
     "show-more": "और दिखाएँ",
@@ -183,7 +181,6 @@
     "no-data": "कोई डेटा नहीं मिला।",
     "password-changed": "पासवर्ड बदल दिया गया",
     "password-not-match": "पासवर्ड मेल नहीं खाते।",
-    "remove-completed-task-list-items-successfully": "सफलतापूर्वक हटाया गया",
     "restored-successfully": "सफलतापूर्वक पुनर्स्थापित किया गया",
     "succeed-copy-link": "लिंक सफलतापूर्वक कॉपी किया गया।",
     "update-succeed": "अपडेट सफल हुआ",
@@ -252,21 +249,6 @@
       "title": "एक्सेस टोकन",
       "token": "टोकन"
     },
-    "user-sessions-section": {
-      "title": "सक्रिय सत्र",
-      "description": "आपके खाते के सभी सक्रिय सत्रों की सूची। सत्र अंतिम गतिविधि के 2 सप्ताह बाद स्वतः समाप्त हो जाते हैं। आप वर्तमान सत्र को छोड़कर किसी भी सत्र को रद्द कर सकते हैं।",
-      "device": "डिवाइस",
-      "location": "स्थान",
-      "last-active": "अंतिम सक्रिय",
-      "expires": "समाप्ति",
-      "current": "वर्तमान",
-      "never": "कभी नहीं",
-      "session-revocation": "क्या आप सत्र {{sessionId}} को रद्द करना चाहते हैं? आपको उस डिवाइस पर फिर से साइन इन करना होगा।",
-      "session-revoked": "सत्र सफलतापूर्वक रद्द किया गया",
-      "revoke-session": "सत्र रद्द करें",
-      "cannot-revoke-current": "वर्तमान सत्र को रद्द नहीं किया जा सकता",
-      "no-sessions": "कोई सक्रिय सत्र नहीं मिला"
-    },
     "account-section": {
       "change-password": "पासवर्ड बदलें",
       "email-note": "वैकल्पिक",
@@ -293,7 +275,7 @@
     },
     "memo-related": "मेमो",
     "memo-related-settings": {
-      "content-lenght-limit": "सामग्री की अधिकतम लंबाई (बाइट)",
+      "content-length-limit": "सामग्री की अधिकतम लंबाई (बाइट)",
       "enable-blur-nsfw-content": "संवेदनशील (NSFW) सामग्री धुंधला करें सक्षम करें",
       "enable-memo-comments": "मेमो टिप्पणियाँ सक्षम करें",
       "enable-memo-location": "मेमो स्थान सक्षम करें",

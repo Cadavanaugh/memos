@@ -1,6 +1,6 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import dayjs from "dayjs";
 import { ExternalLinkIcon, PaperclipIcon, SearchIcon, Trash } from "lucide-react";
-import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -11,23 +11,29 @@ import MobileHeader from "@/components/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { attachmentServiceClient } from "@/grpcweb";
+import { attachmentServiceClient } from "@/connect";
+import { useDeleteAttachment } from "@/hooks/useAttachmentQueries";
 import useDialog from "@/hooks/useDialog";
 import useLoading from "@/hooks/useLoading";
-import useResponsiveWidth from "@/hooks/useResponsiveWidth";
+import useMediaQuery from "@/hooks/useMediaQuery";
 import i18n from "@/i18n";
-import { attachmentStore } from "@/store";
-import type { Attachment } from "@/types/proto/api/v1/attachment_service";
+import { handleError } from "@/lib/error";
+import type { Attachment } from "@/types/proto/api/v1/attachment_service_pb";
 import { useTranslate } from "@/utils/i18n";
 
 const PAGE_SIZE = 50;
 
 const groupAttachmentsByDate = (attachments: Attachment[]): Map<string, Attachment[]> => {
   const grouped = new Map<string, Attachment[]>();
-  const sorted = [...attachments].sort((a, b) => dayjs(b.createTime).unix() - dayjs(a.createTime).unix());
+  const sorted = [...attachments].sort((a, b) => {
+    const aTime = a.createTime ? timestampDate(a.createTime) : undefined;
+    const bTime = b.createTime ? timestampDate(b.createTime) : undefined;
+    return dayjs(bTime).unix() - dayjs(aTime).unix();
+  });
 
   for (const attachment of sorted) {
-    const monthKey = dayjs(attachment.createTime).format("YYYY-MM");
+    const createTime = attachment.createTime ? timestampDate(attachment.createTime) : undefined;
+    const monthKey = dayjs(createTime).format("YYYY-MM");
     const group = grouped.get(monthKey) ?? [];
     group.push(attachment);
     grouped.set(monthKey, group);
@@ -62,11 +68,12 @@ const AttachmentItem = ({ attachment }: AttachmentItemProps) => (
   </div>
 );
 
-const Attachments = observer(() => {
+const Attachments = () => {
   const t = useTranslate();
-  const { md } = useResponsiveWidth();
+  const md = useMediaQuery("md");
   const loadingState = useLoading();
   const deleteUnusedAttachmentsDialog = useDialog();
+  const { mutateAsync: deleteAttachment } = useDeleteAttachment();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -92,8 +99,10 @@ const Attachments = observer(() => {
         setAttachments(fetchedAttachments);
         setNextPageToken(nextPageToken ?? "");
       } catch (error) {
-        console.error("Failed to fetch attachments:", error);
-        toast.error("Failed to load attachments. Please try again.");
+        handleError(error, toast.error, {
+          context: "Failed to fetch attachments",
+          fallbackMessage: "Failed to load attachments. Please try again.",
+        });
       } finally {
         loadingState.setFinish();
       }
@@ -116,8 +125,10 @@ const Attachments = observer(() => {
       setAttachments((prev) => [...prev, ...fetchedAttachments]);
       setNextPageToken(newPageToken ?? "");
     } catch (error) {
-      console.error("Failed to load more attachments:", error);
-      toast.error("Failed to load more attachments. Please try again.");
+      handleError(error, toast.error, {
+        context: "Failed to load more attachments",
+        fallbackMessage: "Failed to load more attachments. Please try again.",
+      });
     } finally {
       setIsLoadingMore(false);
     }
@@ -134,24 +145,40 @@ const Attachments = observer(() => {
       setNextPageToken(nextPageToken ?? "");
       loadingState.setFinish();
     } catch (error) {
-      console.error("Failed to refetch attachments:", error);
-      loadingState.setError();
-      toast.error("Failed to refresh attachments. Please try again.");
+      handleError(error, toast.error, {
+        context: "Failed to refetch attachments",
+        fallbackMessage: "Failed to refresh attachments. Please try again.",
+        onError: () => loadingState.setError(),
+      });
     }
   }, [loadingState]);
 
   // Delete all unused attachments
   const handleDeleteUnusedAttachments = useCallback(async () => {
     try {
-      await Promise.all(unusedAttachments.map((attachment) => attachmentStore.deleteAttachment(attachment.name)));
+      let allUnusedAttachments: Attachment[] = [];
+      let nextPageToken = "";
+      do {
+        const response = await attachmentServiceClient.listAttachments({
+          pageSize: 1000,
+          pageToken: nextPageToken,
+          filter: "memo_id == null",
+        });
+        allUnusedAttachments = [...allUnusedAttachments, ...response.attachments];
+        nextPageToken = response.nextPageToken;
+      } while (nextPageToken);
+
+      await Promise.all(allUnusedAttachments.map((attachment) => deleteAttachment(attachment.name)));
       toast.success(t("resource.delete-all-unused-success"));
     } catch (error) {
-      console.error("Failed to delete unused attachments:", error);
-      toast.error(t("resource.delete-all-unused-error"));
+      handleError(error, toast.error, {
+        context: "Failed to delete unused attachments",
+        fallbackMessage: t("resource.delete-all-unused-error"),
+      });
     } finally {
       await handleRefetch();
     }
-  }, [unusedAttachments, t, handleRefetch]);
+  }, [t, handleRefetch, deleteAttachment]);
 
   // Handle search input change
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,6 +287,6 @@ const Attachments = observer(() => {
       />
     </section>
   );
-});
+};
 
 export default Attachments;

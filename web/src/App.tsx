@@ -1,30 +1,31 @@
-import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router-dom";
+import { useInstance } from "./contexts/InstanceContext";
+import { MemoFilterProvider } from "./contexts/MemoFilterContext";
 import useNavigateTo from "./hooks/useNavigateTo";
-import { instanceStore, userStore } from "./store";
+import { useUserLocale } from "./hooks/useUserLocale";
+import { useUserTheme } from "./hooks/useUserTheme";
 import { cleanupExpiredOAuthState } from "./utils/oauth";
-import { getThemeWithFallback, loadTheme, setupSystemThemeListener } from "./utils/theme";
 
-const App = observer(() => {
-  const { i18n } = useTranslation();
+const App = () => {
   const navigateTo = useNavigateTo();
-  const instanceProfile = instanceStore.state.profile;
-  const userGeneralSetting = userStore.state.userGeneralSetting;
-  const instanceGeneralSetting = instanceStore.state.generalSetting;
+  const { profile: instanceProfile, generalSetting: instanceGeneralSetting } = useInstance();
+
+  // Apply user preferences reactively
+  useUserLocale();
+  useUserTheme();
 
   // Clean up expired OAuth states on app initialization
   useEffect(() => {
     cleanupExpiredOAuthState();
   }, []);
 
-  // Redirect to sign up page if no instance owner.
+  // Redirect to sign up page if instance not initialized (no admin account exists yet)
   useEffect(() => {
-    if (!instanceProfile.owner) {
+    if (!instanceProfile.admin) {
       navigateTo("/auth/signup");
     }
-  }, [instanceProfile.owner]);
+  }, [instanceProfile.admin, navigateTo]);
 
   useEffect(() => {
     if (instanceGeneralSetting.additionalStyle) {
@@ -43,7 +44,7 @@ const App = observer(() => {
     }
   }, [instanceGeneralSetting.additionalScript]);
 
-  // Dynamic update metadata with customized profile.
+  // Dynamic update metadata with customized profile
   useEffect(() => {
     if (!instanceGeneralSetting.customProfile) {
       return;
@@ -54,46 +55,11 @@ const App = observer(() => {
     link.href = instanceGeneralSetting.customProfile.logoUrl || "/logo.webp";
   }, [instanceGeneralSetting.customProfile]);
 
-  // Update HTML lang and dir attributes based on current locale
-  useEffect(() => {
-    const currentLocale = i18n.language;
-    document.documentElement.setAttribute("lang", currentLocale);
-    if (["ar", "fa"].includes(currentLocale)) {
-      document.documentElement.setAttribute("dir", "rtl");
-    } else {
-      document.documentElement.setAttribute("dir", "ltr");
-    }
-  }, [i18n.language]);
-
-  // Apply theme when user setting changes
-  useEffect(() => {
-    if (!userGeneralSetting) {
-      return;
-    }
-    const theme = getThemeWithFallback(userGeneralSetting.theme);
-    loadTheme(theme);
-  }, [userGeneralSetting?.theme]);
-
-  // Listen for system theme changes when using "system" theme
-  useEffect(() => {
-    const theme = getThemeWithFallback(userGeneralSetting?.theme);
-
-    // Only set up listener if theme is "system"
-    if (theme !== "system") {
-      return;
-    }
-
-    // Set up listener for OS theme preference changes
-    const cleanup = setupSystemThemeListener(() => {
-      // Reload theme when system preference changes
-      loadTheme(theme);
-    });
-
-    // Cleanup listener on unmount or when theme changes
-    return cleanup;
-  }, [userGeneralSetting?.theme]);
-
-  return <Outlet />;
-});
+  return (
+    <MemoFilterProvider>
+      <Outlet />
+    </MemoFilterProvider>
+  );
+};
 
 export default App;

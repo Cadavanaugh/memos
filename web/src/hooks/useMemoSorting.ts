@@ -1,8 +1,9 @@
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import dayjs from "dayjs";
 import { useMemo } from "react";
-import { viewStore } from "@/store";
-import { State } from "@/types/proto/api/v1/common";
-import { Memo } from "@/types/proto/api/v1/memo_service";
+import { useView } from "@/contexts/ViewContext";
+import { State } from "@/types/proto/api/v1/common_pb";
+import { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
 export interface UseMemoSortingOptions {
   pinnedFirst?: boolean;
@@ -16,9 +17,7 @@ export interface UseMemoSortingResult {
 
 export const useMemoSorting = (options: UseMemoSortingOptions = {}): UseMemoSortingResult => {
   const { pinnedFirst = false, state = State.NORMAL } = options;
-
-  // Extract MobX observable values to avoid issues with React dependency tracking
-  const orderByTimeAsc = viewStore.state.orderByTimeAsc;
+  const { orderByTimeAsc } = useView();
 
   // Generate orderBy string for API
   const orderBy = useMemo(() => {
@@ -38,9 +37,9 @@ export const useMemoSorting = (options: UseMemoSortingOptions = {}): UseMemoSort
           }
 
           // Then sort by display time
-          return orderByTimeAsc
-            ? dayjs(a.displayTime).unix() - dayjs(b.displayTime).unix()
-            : dayjs(b.displayTime).unix() - dayjs(a.displayTime).unix();
+          const aTime = a.displayTime ? timestampDate(a.displayTime) : undefined;
+          const bTime = b.displayTime ? timestampDate(b.displayTime) : undefined;
+          return orderByTimeAsc ? dayjs(aTime).unix() - dayjs(bTime).unix() : dayjs(bTime).unix() - dayjs(aTime).unix();
         });
     };
   }, [pinnedFirst, state, orderByTimeAsc]);

@@ -152,8 +152,6 @@
     "no-archived-memos": "No hi ha notes arxivades.",
     "no-memos": "No hi ha notes.",
     "order-by": "Ordena per",
-    "remove-completed-task-list-items": "Elimina fets",
-    "remove-completed-task-list-items-confirm": "Estàs segur que vols eliminar totes les tasques completades? AQUESTA ACCIÓ ÉS IRREVERSIBLE",
     "search-placeholder": "Cerca notes...",
     "show-less": "Mostra menys",
     "show-more": "Mostra més",
@@ -183,7 +181,6 @@
     "no-data": "No s'han trobat dades.",
     "password-changed": "Contrasenya canviada",
     "password-not-match": "Les contrasenyes no coincideixen.",
-    "remove-completed-task-list-items-successfully": "Eliminació correcta",
     "restored-successfully": "Restaurat correctament",
     "succeed-copy-link": "Enllaç copiat correctament.",
     "update-succeed": "Actualització correcta",
@@ -251,21 +248,6 @@
       "title": "Tokens d'accés",
       "token": "Token"
     },
-    "user-sessions-section": {
-      "title": "Sessions actives",
-      "description": "Llista de totes les sessions actives del teu compte. Les sessions caduquen automàticament dues setmanes després de l'última activitat. Pots revocar qualsevol sessió excepte la sessió actual.",
-      "device": "Dispositiu",
-      "location": "Ubicació",
-      "last-active": "Última activitat",
-      "expires": "Caduca",
-      "current": "Actual",
-      "never": "Mai",
-      "session-revocation": "Estàs segur que vols revocar la sessió {{sessionId}}? Hauràs d'iniciar sessió de nou en aquest dispositiu.",
-      "session-revoked": "Sessió revocada correctament",
-      "revoke-session": "Revoca la sessió",
-      "cannot-revoke-current": "No es pot revocar la sessió actual",
-      "no-sessions": "No s'han trobat sessions actives"
-    },
     "account-section": {
       "change-password": "Canvia la contrasenya",
       "email-note": "Opcional",
@@ -292,7 +274,7 @@
     },
     "memo-related": "Nota",
     "memo-related-settings": {
-      "content-lenght-limit": "Límit de longitud del contingut (Bytes)",
+      "content-length-limit": "Límit de longitud del contingut (Bytes)",
       "enable-blur-nsfw-content": "Habilita el difuminat de contingut sensible (NSFW)",
       "enable-memo-comments": "Habilita els comentaris a les notes",
       "enable-memo-location": "Habilita la ubicació de la nota",

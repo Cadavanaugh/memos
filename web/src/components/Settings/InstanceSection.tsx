@@ -1,35 +1,38 @@
+import { create } from "@bufbuild/protobuf";
 import { isEqual } from "lodash-es";
-import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { identityProviderServiceClient } from "@/grpcweb";
+import { identityProviderServiceClient } from "@/connect";
+import { useInstance } from "@/contexts/InstanceContext";
 import useDialog from "@/hooks/useDialog";
-import { instanceStore } from "@/store";
-import { instanceSettingNamePrefix } from "@/store/common";
-import { IdentityProvider } from "@/types/proto/api/v1/idp_service";
-import { InstanceSetting_GeneralSetting, InstanceSetting_Key } from "@/types/proto/api/v1/instance_service";
+import { handleError } from "@/lib/error";
+import { IdentityProvider } from "@/types/proto/api/v1/idp_service_pb";
+import {
+  InstanceSetting_GeneralSetting,
+  InstanceSetting_GeneralSettingSchema,
+  InstanceSetting_Key,
+  InstanceSettingSchema,
+} from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import UpdateCustomizedProfileDialog from "../UpdateCustomizedProfileDialog";
 import SettingGroup from "./SettingGroup";
 import SettingRow from "./SettingRow";
 import SettingSection from "./SettingSection";
 
-const InstanceSection = observer(() => {
+const InstanceSection = () => {
   const t = useTranslate();
   const customizeDialog = useDialog();
-  const originalSetting = InstanceSetting_GeneralSetting.fromPartial(
-    instanceStore.getInstanceSettingByKey(InstanceSetting_Key.GENERAL)?.generalSetting || {},
-  );
+  const { generalSetting: originalSetting, profile, updateSetting, fetchSetting } = useInstance();
   const [instanceGeneralSetting, setInstanceGeneralSetting] = useState<InstanceSetting_GeneralSetting>(originalSetting);
   const [identityProviderList, setIdentityProviderList] = useState<IdentityProvider[]>([]);
 
   useEffect(() => {
     setInstanceGeneralSetting({ ...instanceGeneralSetting, customProfile: originalSetting.customProfile });
-  }, [instanceStore.getInstanceSettingByKey(InstanceSetting_Key.GENERAL)]);
+  }, [originalSetting]);
 
   const handleUpdateCustomizedProfileButtonClick = () => {
     customizeDialog.open();
@@ -37,7 +40,7 @@ const InstanceSection = observer(() => {
 
   const updatePartialSetting = (partial: Partial<InstanceSetting_GeneralSetting>) => {
     setInstanceGeneralSetting(
-      InstanceSetting_GeneralSetting.fromPartial({
+      create(InstanceSetting_GeneralSettingSchema, {
         ...instanceGeneralSetting,
         ...partial,
       }),
@@ -46,13 +49,20 @@ const InstanceSection = observer(() => {
 
   const handleSaveGeneralSetting = async () => {
     try {
-      await instanceStore.upsertInstanceSetting({
-        name: `${instanceSettingNamePrefix}${InstanceSetting_Key.GENERAL}`,
-        generalSetting: instanceGeneralSetting,
+      await updateSetting(
+        create(InstanceSettingSchema, {
+          name: `instance/settings/${InstanceSetting_Key[InstanceSetting_Key.GENERAL]}`,
+          value: {
+            case: "generalSetting",
+            value: instanceGeneralSetting,
+          },
+        }),
+      );
+      await fetchSetting(InstanceSetting_Key.GENERAL);
+    } catch (error: unknown) {
+      await handleError(error, toast.error, {
+        context: "Update general settings",
       });
-    } catch (error: any) {
-      toast.error(error.details);
-      console.error(error);
       return;
     }
     toast.success(t("message.update-succeed"));
@@ -99,10 +109,10 @@ const InstanceSection = observer(() => {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title={t("setting.instance-section.disallow-user-registration")} showSeparator>
+      <SettingGroup>
         <SettingRow label={t("setting.instance-section.disallow-user-registration")}>
           <Switch
-            disabled={instanceStore.state.profile.mode === "demo"}
+            disabled={profile.demo}
             checked={instanceGeneralSetting.disallowUserRegistration}
             onCheckedChange={(checked) => updatePartialSetting({ disallowUserRegistration: checked })}
           />
@@ -110,10 +120,7 @@ const InstanceSection = observer(() => {
 
         <SettingRow label={t("setting.instance-section.disallow-password-auth")}>
           <Switch
-            disabled={
-              instanceStore.state.profile.mode === "demo" ||
-              (identityProviderList.length === 0 && !instanceGeneralSetting.disallowPasswordAuth)
-            }
+            disabled={profile.demo || (identityProviderList.length === 0 && !instanceGeneralSetting.disallowPasswordAuth)}
             checked={instanceGeneralSetting.disallowPasswordAuth}
             onCheckedChange={(checked) => updatePartialSetting({ disallowPasswordAuth: checked })}
           />
@@ -168,6 +175,6 @@ const InstanceSection = observer(() => {
       />
     </SettingSection>
   );
-});
+};
 
 export default InstanceSection;

@@ -1,23 +1,21 @@
-import { observer } from "mobx-react-lite";
-import { MemoRenderContext } from "@/components/MasonryView";
 import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
+import { useInstance } from "@/contexts/InstanceContext";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { State } from "@/types/proto/api/v1/common";
-import { Memo } from "@/types/proto/api/v1/memo_service";
+import { State } from "@/types/proto/api/v1/common_pb";
+import { Memo } from "@/types/proto/api/v1/memo_service_pb";
 
-const Home = observer(() => {
+const Home = () => {
   const user = useCurrentUser();
+  const { isInitialized } = useInstance();
 
-  // Build filter using unified hook
   const memoFilter = useMemoFilters({
-    creatorName: user.name,
+    creatorName: user?.name,
     includeShortcuts: true,
     includePinned: true,
   });
 
-  // Get sorting logic using unified hook
   const { listSort, orderBy } = useMemoSorting({
     pinnedFirst: true,
     state: State.NORMAL,
@@ -26,15 +24,14 @@ const Home = observer(() => {
   return (
     <div className="w-full min-h-full bg-background text-foreground">
       <PagedMemoList
-        renderer={(memo: Memo, context?: MemoRenderContext) => (
-          <MemoView key={`${memo.name}-${memo.displayTime}`} memo={memo} showVisibility showPinned compact={context?.compact} />
-        )}
+        renderer={(memo: Memo) => <MemoView key={`${memo.name}-${memo.displayTime}`} memo={memo} showVisibility showPinned compact />}
         listSort={listSort}
         orderBy={orderBy}
         filter={memoFilter}
+        enabled={isInitialized && !!user} // Wait for contexts to stabilize before fetching
       />
     </div>
   );
-});
+};
 
 export default Home;

@@ -6,6 +6,7 @@ import (
 
 	"github.com/usememos/memos/internal/profile"
 	"github.com/usememos/memos/plugin/markdown"
+	"github.com/usememos/memos/server/auth"
 	apiv1 "github.com/usememos/memos/server/router/api/v1"
 	"github.com/usememos/memos/store"
 	teststore "github.com/usememos/memos/store/test"
@@ -28,7 +29,7 @@ func NewTestService(t *testing.T) *TestService {
 
 	// Create a test profile
 	testProfile := &profile.Profile{
-		Mode:        "dev",
+		Demo:        true,
 		Version:     "test-1.0.0",
 		InstanceURL: "http://localhost:8080",
 		Driver:      "sqlite",
@@ -55,17 +56,16 @@ func NewTestService(t *testing.T) *TestService {
 	}
 }
 
-// Cleanup clears caches and closes resources after test.
+// Cleanup closes resources after test.
 func (ts *TestService) Cleanup() {
 	ts.Store.Close()
-	// Note: Owner cache is package-level in parent package, cannot clear from test package
 }
 
-// CreateHostUser creates a host user for testing.
+// CreateHostUser creates an admin user for testing.
 func (ts *TestService) CreateHostUser(ctx context.Context, username string) (*store.User, error) {
 	return ts.Store.CreateUser(ctx, &store.User{
 		Username: username,
-		Role:     store.RoleHost,
+		Role:     store.RoleAdmin,
 		Email:    username + "@example.com",
 	})
 }
@@ -81,6 +81,6 @@ func (ts *TestService) CreateRegularUser(ctx context.Context, username string) (
 
 // CreateUserContext creates a context with the given user's ID for authentication.
 func (*TestService) CreateUserContext(ctx context.Context, userID int32) context.Context {
-	// Use the real context key from the parent package
-	return context.WithValue(ctx, apiv1.UserIDContextKey, userID)
+	// Use the context key from the auth package
+	return context.WithValue(ctx, auth.UserIDContextKey, userID)
 }

@@ -11,11 +11,7 @@ import {
   SearchIcon,
   XIcon,
 } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { memoFilterStore } from "@/store";
-import { FilterFactor, getMemoFilterKey, MemoFilter, stringifyFilters } from "@/store/memoFilter";
+import { FilterFactor, getMemoFilterKey, MemoFilter, useMemoFilterContext } from "@/contexts/MemoFilterContext";
 import { useTranslate } from "@/utils/i18n";
 
 interface FilterConfig {
@@ -58,21 +54,12 @@ const FILTER_CONFIGS: Record<FilterFactor, FilterConfig> = {
   },
 };
 
-const MemoFilters = observer(() => {
+const MemoFilters = () => {
   const t = useTranslate();
-  const [, setSearchParams] = useSearchParams();
-  const filters = memoFilterStore.filters;
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams();
-    if (filters.length > 0) {
-      searchParams.set("filter", stringifyFilters(filters));
-    }
-    setSearchParams(searchParams);
-  }, [filters, setSearchParams]);
+  const { filters, removeFilter } = useMemoFilterContext();
 
   const handleRemoveFilter = (filter: MemoFilter) => {
-    memoFilterStore.removeFilter((f: MemoFilter) => isEqual(f, filter));
+    removeFilter((f: MemoFilter) => isEqual(f, filter));
   };
 
   const getFilterDisplayText = (filter: MemoFilter): string => {
@@ -112,7 +99,7 @@ const MemoFilters = observer(() => {
       })}
     </div>
   );
-});
+};
 
 MemoFilters.displayName = "MemoFilters";
 

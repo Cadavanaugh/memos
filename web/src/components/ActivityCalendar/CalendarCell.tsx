@@ -1,18 +1,20 @@
 import { memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { CalendarDayCell } from "./types";
+import { DEFAULT_CELL_SIZE, SMALL_CELL_SIZE } from "./constants";
+import type { CalendarDayCell, CalendarSize } from "./types";
 import { getCellIntensityClass } from "./utils";
 
-interface CalendarCellProps {
+export interface CalendarCellProps {
   day: CalendarDayCell;
   maxCount: number;
   tooltipText: string;
   onClick?: (date: string) => void;
+  size?: CalendarSize;
 }
 
 export const CalendarCell = memo((props: CalendarCellProps) => {
-  const { day, maxCount, tooltipText, onClick } = props;
+  const { day, maxCount, tooltipText, onClick, size = "default" } = props;
 
   const handleClick = () => {
     if (day.count > 0 && onClick) {
@@ -20,29 +22,30 @@ export const CalendarCell = memo((props: CalendarCellProps) => {
     }
   };
 
-  const baseClasses =
-    "w-full h-7 rounded-md border text-xs flex items-center justify-center text-center transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background select-none";
+  const sizeConfig = size === "small" ? SMALL_CELL_SIZE : DEFAULT_CELL_SIZE;
+  const smallExtraClasses = size === "small" ? `${SMALL_CELL_SIZE.dimensions} min-h-0` : "";
+
+  const baseClasses = cn(
+    "aspect-square w-full flex items-center justify-center text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 select-none border border-border/10 bg-muted/20",
+    sizeConfig.font,
+    sizeConfig.borderRadius,
+    smallExtraClasses,
+  );
   const isInteractive = Boolean(onClick && day.count > 0);
   const ariaLabel = day.isSelected ? `${tooltipText} (selected)` : tooltipText;
 
   if (!day.isCurrentMonth) {
-    return (
-      <div className={cn(baseClasses, "border-transparent text-muted-foreground/60 bg-transparent pointer-events-none opacity-80")}>
-        {day.label}
-      </div>
-    );
+    return <div className={cn(baseClasses, "text-muted-foreground/30 bg-transparent border-transparent cursor-default")}>{day.label}</div>;
   }
 
   const intensityClass = getCellIntensityClass(day, maxCount);
 
   const buttonClasses = cn(
     baseClasses,
-    "border-transparent text-muted-foreground",
-    day.isToday && "border-border",
-    day.isSelected && "border-border font-medium",
-    day.isWeekend && "text-muted-foreground/80",
     intensityClass,
-    isInteractive ? "cursor-pointer hover:scale-105" : "cursor-default",
+    day.isToday && "ring-2 ring-primary/30 ring-offset-1 font-semibold z-10",
+    day.isSelected && "ring-2 ring-primary ring-offset-1 font-bold z-10",
+    isInteractive ? "cursor-pointer hover:bg-muted/40 hover:border-border/30" : "cursor-default",
   );
 
   const button = (
@@ -59,7 +62,9 @@ export const CalendarCell = memo((props: CalendarCellProps) => {
     </button>
   );
 
-  if (!tooltipText) {
+  const shouldShowTooltip = tooltipText && day.count > 0;
+
+  if (!shouldShowTooltip) {
     return button;
   }
 

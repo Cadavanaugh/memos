@@ -1,9 +1,9 @@
 import { LatLng } from "leaflet";
 import { uniqBy } from "lodash-es";
-import { FileIcon, LinkIcon, LoaderIcon, MapPinIcon, Maximize2Icon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import { useContext, useState } from "react";
-import type { LocalFile } from "@/components/memo-metadata";
+import { FileIcon, LinkIcon, LoaderIcon, type LucideIcon, MapPinIcon, Maximize2Icon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "react-use";
+import { useReverseGeocoding } from "@/components/map";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,55 +13,73 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
+  useDropdownMenuSubHoverDelay,
 } from "@/components/ui/dropdown-menu";
-import type { Location, MemoRelation } from "@/types/proto/api/v1/memo_service";
+import type { MemoRelation } from "@/types/proto/api/v1/memo_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import { LinkMemoDialog, LocationDialog } from "../components";
-import { GEOCODING } from "../constants";
 import { useFileUpload, useLinkMemo, useLocation } from "../hooks";
-import { useAbortController } from "../hooks/useAbortController";
-import { MemoEditorContext } from "../types";
+import { useEditorContext } from "../state";
+import type { InsertMenuProps } from "../types";
+import type { LocalFile } from "../types/attachment";
 
-interface Props {
-  isUploading?: boolean;
-  location?: Location;
-  onLocationChange: (location?: Location) => void;
-  onToggleFocusMode?: () => void;
-}
-
-const InsertMenu = observer((props: Props) => {
+const InsertMenu = (props: InsertMenuProps) => {
   const t = useTranslate();
-  const context = useContext(MemoEditorContext);
+  const { state, actions, dispatch } = useEditorContext();
+  const { location: initialLocation, onLocationChange, onToggleFocusMode, isUploading: isUploadingProp } = props;
 
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [moreSubmenuOpen, setMoreSubmenuOpen] = useState(false);
 
-  // Abort controller for canceling geocoding requests
-  const { abort: abortGeocoding, abortAndCreate: createGeocodingSignal } = useAbortController();
+  const { handleTriggerEnter, handleTriggerLeave, handleContentEnter, handleContentLeave } = useDropdownMenuSubHoverDelay(
+    150,
+    setMoreSubmenuOpen,
+  );
 
   const { fileInputRef, selectingFlag, handleFileInputChange, handleUploadClick } = useFileUpload((newFiles: LocalFile[]) => {
-    if (context.addLocalFiles) {
-      context.addLocalFiles(newFiles);
-    }
+    newFiles.forEach((file) => dispatch(actions.addLocalFile(file)));
   });
 
   const linkMemo = useLinkMemo({
     isOpen: linkDialogOpen,
-    currentMemoName: context.memoName,
-    existingRelations: context.relationList,
+    currentMemoName: props.memoName,
+    existingRelations: state.metadata.relations,
     onAddRelation: (relation: MemoRelation) => {
-      context.setRelationList(uniqBy([...context.relationList, relation], (r) => r.relatedMemo?.name));
+      dispatch(actions.setMetadata({ relations: uniqBy([...state.metadata.relations, relation], (r) => r.relatedMemo?.name) }));
       setLinkDialogOpen(false);
     },
   });
 
   const location = useLocation(props.location);
 
-  const isUploading = selectingFlag || props.isUploading;
+  const [debouncedPosition, setDebouncedPosition] = useState<LatLng | undefined>(undefined);
 
-  const handleLocationClick = () => {
+  useDebounce(
+    () => {
+      setDebouncedPosition(location.state.position);
+    },
+    1000,
+    [location.state.position],
+  );
+
+  const { data: displayName } = useReverseGeocoding(debouncedPosition?.lat, debouncedPosition?.lng);
+
+  useEffect(() => {
+    if (displayName) {
+      location.setPlaceholder(displayName);
+    }
+  }, [displayName]);
+
+  const isUploading = selectingFlag || isUploadingProp;
+
+  const handleOpenLinkDialog = useCallback(() => {
+    setLinkDialogOpen(true);
+  }, []);
+
+  const handleLocationClick = useCallback(() => {
     setLocationDialogOpen(true);
-    if (!props.location && !location.locationInitialized) {
+    if (!initialLocation && !location.locationInitialized) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -73,104 +91,87 @@ const InsertMenu = observer((props: Props) => {
         );
       }
     }
-  };
+  }, [initialLocation, location]);
 
-  const handleLocationConfirm = () => {
+  const handleLocationConfirm = useCallback(() => {
     const newLocation = location.getLocation();
     if (newLocation) {
-      props.onLocationChange(newLocation);
+      onLocationChange(newLocation);
       setLocationDialogOpen(false);
     }
-  };
+  }, [location, onLocationChange]);
 
-  const handleLocationCancel = () => {
-    abortGeocoding();
+  const handleLocationCancel = useCallback(() => {
     location.reset();
     setLocationDialogOpen(false);
-  };
+  }, [location]);
 
-  const fetchReverseGeocode = async (position: LatLng, signal: AbortSignal): Promise<string> => {
-    const coordString = `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`;
-    try {
-      const url = `${GEOCODING.endpoint}?lat=${position.lat}&lon=${position.lng}&format=${GEOCODING.format}`;
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": GEOCODING.userAgent,
-          Accept: "application/json",
+  const handlePositionChange = useCallback(
+    (position: LatLng) => {
+      location.handlePositionChange(position);
+    },
+    [location],
+  );
+
+  const handleToggleFocusMode = useCallback(() => {
+    onToggleFocusMode?.();
+    setMoreSubmenuOpen(false);
+  }, [onToggleFocusMode]);
+
+  const menuItems = useMemo(
+    () =>
+      [
+        {
+          key: "upload",
+          label: t("common.upload"),
+          icon: FileIcon,
+          onClick: handleUploadClick,
         },
-        signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data?.display_name || coordString;
-    } catch (error) {
-      // Silently return coordinates for abort errors
-      if (error instanceof Error && error.name === "AbortError") {
-        throw error; // Re-throw to handle in caller
-      }
-      console.error("Failed to fetch reverse geocoding data:", error);
-      return coordString;
-    }
-  };
-
-  const handlePositionChange = (position: LatLng) => {
-    location.handlePositionChange(position);
-
-    // Abort previous and create new signal for this request
-    const signal = createGeocodingSignal();
-
-    fetchReverseGeocode(position, signal)
-      .then((displayName) => {
-        location.setPlaceholder(displayName);
-      })
-      .catch((error) => {
-        // Ignore abort errors (user canceled the request)
-        if (error.name !== "AbortError") {
-          // Set coordinate fallback for other errors
-          location.setPlaceholder(`${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`);
-        }
-      });
-  };
+        {
+          key: "link",
+          label: t("tooltip.link-memo"),
+          icon: LinkIcon,
+          onClick: handleOpenLinkDialog,
+        },
+        {
+          key: "location",
+          label: t("tooltip.select-location"),
+          icon: MapPinIcon,
+          onClick: handleLocationClick,
+        },
+      ] satisfies Array<{ key: string; label: string; icon: LucideIcon; onClick: () => void }>,
+    [handleLocationClick, handleOpenLinkDialog, handleUploadClick, t],
+  );
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="shadow-none" disabled={isUploading}>
             {isUploading ? <LoaderIcon className="size-4 animate-spin" /> : <PlusIcon className="size-4" />}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={handleUploadClick}>
-            <FileIcon className="w-4 h-4" />
-            {t("common.upload")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setLinkDialogOpen(true)}>
-            <LinkIcon className="w-4 h-4" />
-            {t("tooltip.link-memo")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLocationClick}>
-            <MapPinIcon className="w-4 h-4" />
-            {t("tooltip.select-location")}
-          </DropdownMenuItem>
+          {menuItems.map((item) => (
+            <DropdownMenuItem key={item.key} onClick={item.onClick}>
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </DropdownMenuItem>
+          ))}
           {/* View submenu with Focus Mode */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
+          <DropdownMenuSub open={moreSubmenuOpen} onOpenChange={setMoreSubmenuOpen}>
+            <DropdownMenuSubTrigger onPointerEnter={handleTriggerEnter} onPointerLeave={handleTriggerLeave}>
               <MoreHorizontalIcon className="w-4 h-4" />
               {t("common.more")}
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={props.onToggleFocusMode}>
+            <DropdownMenuSubContent onPointerEnter={handleContentEnter} onPointerLeave={handleContentLeave}>
+              <DropdownMenuItem onClick={handleToggleFocusMode}>
                 <Maximize2Icon className="w-4 h-4" />
                 {t("editor.focus-mode")}
-                <span className="ml-auto text-xs text-muted-foreground opacity-60">⌘⇧F</span>
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          <div className="px-2 py-1 text-xs text-muted-foreground opacity-80">{t("editor.slash-commands")}</div>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -201,14 +202,13 @@ const InsertMenu = observer((props: Props) => {
         state={location.state}
         locationInitialized={location.locationInitialized}
         onPositionChange={handlePositionChange}
-        onLatChange={location.handleLatChange}
-        onLngChange={location.handleLngChange}
+        onUpdateCoordinate={location.updateCoordinate}
         onPlaceholderChange={location.setPlaceholder}
         onCancel={handleLocationCancel}
         onConfirm={handleLocationConfirm}
       />
     </>
   );
-});
+};
 
 export default InsertMenu;

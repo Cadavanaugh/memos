@@ -152,8 +152,6 @@
     "no-archived-memos": "Ingen arkiverte memoer.",
     "no-memos": "Ingen memoer.",
     "order-by": "Sorter etter",
-    "remove-completed-task-list-items": "Fjerning utført",
-    "remove-completed-task-list-items-confirm": "Er du sikker på at du vil fjerne alle utførte gjøremål? DENNE HANDLINGEN KAN IKKE ANGRES.",
     "search-placeholder": "Søk etter memoer...",
     "show-less": "Vis mindre",
     "show-more": "Vis mer",
@@ -183,7 +181,6 @@
     "no-data": "Ingen data funnet.",
     "password-changed": "Passord endret",
     "password-not-match": "Passordene samsvarer ikke",
-    "remove-completed-task-list-items-successfully": "Fjerning vellykket",
     "restored-successfully": "Gjenoppretting vellykket",
     "succeed-copy-link": "Link kopiert.",
     "update-succeed": "Oppdatering vellykket",
@@ -251,21 +248,6 @@
       "title": "Access tokens",
       "token": "Token"
     },
-    "user-sessions-section": {
-      "title": "Aktive økter",
-      "description": "En liste over alle aktive økter for din konto. Økter utløper automatisk 2 uker etter siste aktivitet. Du kan tilbakekalle enhver økt bortsett fra den nåværende.",
-      "device": "Enhet",
-      "location": "Plassering",
-      "last-active": "Sist aktiv",
-      "expires": "Utløper",
-      "current": "Nåværende",
-      "never": "Aldri",
-      "session-revocation": "Er du sikker på at du vil tilbakekalle økt {{sessionId}}? Du må logge inn på nytt på den enheten.",
-      "session-revoked": "Økt tilbakekalt",
-      "revoke-session": "Tilbakekall økt",
-      "cannot-revoke-current": "Kan ikke tilbakekalle nåværende økt",
-      "no-sessions": "Ingen aktive økter funnet"
-    },
     "account-section": {
       "change-password": "Endre passord",
       "email-note": "Valgfritt",
@@ -292,7 +274,7 @@
     },
     "memo-related": "Memo",
     "memo-related-settings": {
-      "content-lenght-limit": "Maksimal innholdslengde (Byte)",
+      "content-length-limit": "Maksimal innholdslengde (Byte)",
       "enable-blur-nsfw-content": "Slå på sløring av NSFW-innhold (legg til NSFW-tagger nedenfor)",
       "enable-memo-comments": "Slå på kommentarer for memoer",
       "enable-memo-location": "Slå på lokasjon for memoer",

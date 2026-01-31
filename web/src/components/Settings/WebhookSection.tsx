@@ -4,9 +4,9 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { userServiceClient } from "@/grpcweb";
+import { userServiceClient } from "@/connect";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { UserWebhook } from "@/types/proto/api/v1/user_service";
+import { UserWebhook } from "@/types/proto/api/v1/user_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import CreateWebhookDialog from "../CreateWebhookDialog";
 import SettingTable from "./SettingTable";
@@ -97,7 +97,7 @@ const WebhookSection = () => {
       <div className="w-full">
         <Link
           className="text-muted-foreground text-sm inline-flex items-center hover:underline hover:text-primary"
-          to="https://www.usememos.com/docs/integrations/webhooks"
+          to="https://usememos.com/docs/integrations/webhooks"
           target="_blank"
         >
           {t("common.learn-more")}

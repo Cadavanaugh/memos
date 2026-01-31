@@ -152,8 +152,6 @@
     "no-archived-memos": "Arşivlenmiş not yok.",
     "no-memos": "Not yok.",
     "order-by": "Sıralama Ölçütü",
-    "remove-completed-task-list-items": "Tamamlananları kaldır",
-    "remove-completed-task-list-items-confirm": "Tamamlanan tüm görevleri kaldırmak istediğinizden emin misiniz? BU İŞLEM GERİ ALINAMAZ",
     "search-placeholder": "Notlarda ara",
     "show-less": "Daha az göster",
     "show-more": "Daha fazla göster",
@@ -183,7 +181,6 @@
     "no-data": "Veri bulunamadı.",
     "password-changed": "Şifre Değiştirildi",
     "password-not-match": "Şifreler eşleşmiyor.",
-    "remove-completed-task-list-items-successfully": "Kaldırma işlemi başarılı",
     "restored-successfully": "Başarıyla geri yüklendi",
     "succeed-copy-link": "Bağlantı başarıyla kopyalandı.",
     "update-succeed": "Güncelleme başarılı",
@@ -251,21 +248,6 @@
       "title": "Erişim Tokenleri",
       "token": "Token"
     },
-    "user-sessions-section": {
-      "title": "Aktif Oturumlar",
-      "description": "Hesabınız için tüm aktif oturumların listesi. Oturumlar, son etkinlikten 2 hafta sonra otomatik olarak sona erer. Mevcut oturum hariç herhangi bir oturumu iptal edebilirsiniz.",
-      "device": "Cihaz",
-      "location": "Konum",
-      "last-active": "Son Etkinlik",
-      "expires": "Sona Erme",
-      "current": "Mevcut",
-      "never": "Asla",
-      "session-revocation": "{{sessionId}} oturumunu iptal etmek istediğinizden emin misiniz? O cihazda tekrar giriş yapmanız gerekecek.",
-      "session-revoked": "Oturum başarıyla iptal edildi",
-      "revoke-session": "Oturumu iptal et",
-      "cannot-revoke-current": "Mevcut oturum iptal edilemez",
-      "no-sessions": "Aktif oturum bulunamadı"
-    },
     "account-section": {
       "change-password": "Şifre değiştir",
       "email-note": "İsteğe bağlı",
@@ -292,7 +274,7 @@
     },
     "memo-related": "Not",
     "memo-related-settings": {
-      "content-lenght-limit": "İçerik uzunluğu sınırı (Bayt)",
+      "content-length-limit": "İçerik uzunluğu sınırı (Bayt)",
       "enable-blur-nsfw-content": "NSFW içeriği bulanıklaştırmayı etkinleştir",
       "enable-memo-comments": "Not yorumlarını etkinleştir",
       "enable-memo-location": "Not konumunu etkinleştir",

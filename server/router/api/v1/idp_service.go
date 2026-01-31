@@ -14,11 +14,14 @@ import (
 )
 
 func (s *APIV1Service) CreateIdentityProvider(ctx context.Context, request *v1pb.CreateIdentityProviderRequest) (*v1pb.IdentityProvider, error) {
-	currentUser, err := s.GetCurrentUser(ctx)
+	currentUser, err := s.fetchCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
-	if currentUser == nil || currentUser.Role != store.RoleHost {
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
 
@@ -41,7 +44,7 @@ func (s *APIV1Service) ListIdentityProviders(ctx context.Context, _ *v1pb.ListId
 
 	// Default to lowest-privilege role, update later based on real role
 	currentUserRole := store.RoleUser
-	currentUser, err := s.GetCurrentUser(ctx)
+	currentUser, err := s.fetchCurrentUser(ctx)
 	if err == nil && currentUser != nil {
 		currentUserRole = currentUser.Role
 	}
@@ -70,7 +73,7 @@ func (s *APIV1Service) GetIdentityProvider(ctx context.Context, request *v1pb.Ge
 
 	// Default to lowest-privilege role, update later based on real role
 	currentUserRole := store.RoleUser
-	currentUser, err := s.GetCurrentUser(ctx)
+	currentUser, err := s.fetchCurrentUser(ctx)
 	if err == nil && currentUser != nil {
 		currentUserRole = currentUser.Role
 	}
@@ -80,11 +83,14 @@ func (s *APIV1Service) GetIdentityProvider(ctx context.Context, request *v1pb.Ge
 }
 
 func (s *APIV1Service) UpdateIdentityProvider(ctx context.Context, request *v1pb.UpdateIdentityProviderRequest) (*v1pb.IdentityProvider, error) {
-	currentUser, err := s.GetCurrentUser(ctx)
+	currentUser, err := s.fetchCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
-	if currentUser == nil || currentUser.Role != store.RoleHost {
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
 
@@ -121,11 +127,14 @@ func (s *APIV1Service) UpdateIdentityProvider(ctx context.Context, request *v1pb
 }
 
 func (s *APIV1Service) DeleteIdentityProvider(ctx context.Context, request *v1pb.DeleteIdentityProviderRequest) (*emptypb.Empty, error) {
-	currentUser, err := s.GetCurrentUser(ctx)
+	currentUser, err := s.fetchCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
 	}
-	if currentUser == nil || currentUser.Role != store.RoleHost {
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
 
@@ -219,7 +228,7 @@ func convertIdentityProviderConfigToStore(identityProviderType v1pb.IdentityProv
 }
 
 func redactIdentityProviderResponse(identityProvider *v1pb.IdentityProvider, userRole store.Role) *v1pb.IdentityProvider {
-	if userRole != store.RoleHost {
+	if userRole != store.RoleAdmin {
 		if identityProvider.Type == v1pb.IdentityProvider_OAUTH2 {
 			identityProvider.Config.GetOauth2Config().ClientSecret = ""
 		}

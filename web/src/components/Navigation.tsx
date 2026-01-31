@@ -1,12 +1,11 @@
 import { BellIcon, EarthIcon, LibraryIcon, PaperclipIcon, UserCircleIcon } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import { useNotifications } from "@/hooks/useUserQueries";
 import { cn } from "@/lib/utils";
 import { Routes } from "@/router";
-import { userStore } from "@/store";
+import { UserNotification_Status } from "@/types/proto/api/v1/user_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import MemosLogo from "./MemosLogo";
 import UserMenu from "./UserMenu";
@@ -23,18 +22,11 @@ interface Props {
   className?: string;
 }
 
-const Navigation = observer((props: Props) => {
+const Navigation = (props: Props) => {
   const { collapsed, className } = props;
   const t = useTranslate();
   const currentUser = useCurrentUser();
-
-  useEffect(() => {
-    if (!currentUser) {
-      return;
-    }
-
-    userStore.fetchNotifications();
-  }, []);
+  const { data: notifications = [] } = useNotifications();
 
   const homeNavLink: NavLinkItem = {
     id: "header-memos",
@@ -54,7 +46,7 @@ const Navigation = observer((props: Props) => {
     title: t("common.attachments"),
     icon: <PaperclipIcon className="w-6 h-auto shrink-0" />,
   };
-  const unreadCount = userStore.state.notifications.filter((n) => n.status === "UNREAD").length;
+  const unreadCount = notifications.filter((n) => n.status === UserNotification_Status.UNREAD).length;
   const inboxNavLink: NavLinkItem = {
     id: "header-inbox",
     path: Routes.INBOX,
@@ -128,6 +120,6 @@ const Navigation = observer((props: Props) => {
       )}
     </header>
   );
-});
+};
 
 export default Navigation;

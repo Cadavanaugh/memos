@@ -8,10 +8,8 @@ import {
   FileTextIcon,
   LinkIcon,
   MoreVerticalIcon,
-  SquareCheckIcon,
   TrashIcon,
 } from "lucide-react";
-import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -24,22 +22,19 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { State } from "@/types/proto/api/v1/common";
+import { State } from "@/types/proto/api/v1/common_pb";
 import { useTranslate } from "@/utils/i18n";
-import { hasCompletedTasks } from "@/utils/markdown-manipulation";
 import { useMemoActionHandlers } from "./hooks";
 import type { MemoActionMenuProps } from "./types";
 
-const MemoActionMenu = observer((props: MemoActionMenuProps) => {
+const MemoActionMenu = (props: MemoActionMenuProps) => {
   const { memo, readonly } = props;
   const t = useTranslate();
 
   // Dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [removeTasksDialogOpen, setRemoveTasksDialogOpen] = useState(false);
 
   // Derived state
-  const hasCompletedTaskList = hasCompletedTasks(memo.content);
   const isComment = Boolean(memo.parent);
   const isArchived = memo.state === State.ARCHIVED;
 
@@ -52,13 +47,10 @@ const MemoActionMenu = observer((props: MemoActionMenuProps) => {
     handleCopyContent,
     handleDeleteMemoClick,
     confirmDeleteMemo,
-    handleRemoveCompletedTaskListItemsClick,
-    confirmRemoveCompletedTaskListItems,
   } = useMemoActionHandlers({
     memo,
     onEdit: props.onEdit,
     setDeleteDialogOpen,
-    setRemoveTasksDialogOpen,
   });
 
   return (
@@ -108,14 +100,6 @@ const MemoActionMenu = observer((props: MemoActionMenuProps) => {
         {/* Write actions (non-readonly) */}
         {!readonly && (
           <>
-            {/* Remove completed tasks (non-archived, non-comment, has completed tasks) */}
-            {!isArchived && !isComment && hasCompletedTaskList && (
-              <DropdownMenuItem onClick={handleRemoveCompletedTaskListItemsClick}>
-                <SquareCheckIcon className="w-4 h-auto" />
-                {t("memo.remove-completed-task-list-items")}
-              </DropdownMenuItem>
-            )}
-
             {/* Archive/Restore (non-comment) */}
             {!isComment && (
               <DropdownMenuItem onClick={handleToggleMemoStatusClick}>
@@ -144,19 +128,8 @@ const MemoActionMenu = observer((props: MemoActionMenuProps) => {
         onConfirm={confirmDeleteMemo}
         confirmVariant="destructive"
       />
-
-      {/* Remove completed tasks confirmation */}
-      <ConfirmDialog
-        open={removeTasksDialogOpen}
-        onOpenChange={setRemoveTasksDialogOpen}
-        title={t("memo.remove-completed-task-list-items-confirm")}
-        confirmLabel={t("common.confirm")}
-        cancelLabel={t("common.cancel")}
-        onConfirm={confirmRemoveCompletedTaskListItems}
-        confirmVariant="destructive"
-      />
     </DropdownMenu>
   );
-});
+};
 
 export default MemoActionMenu;

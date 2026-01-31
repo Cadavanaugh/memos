@@ -1,5 +1,5 @@
+import { create } from "@bufbuild/protobuf";
 import { isEqual } from "lodash-es";
-import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -7,39 +7,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { instanceStore } from "@/store";
-import { instanceSettingNamePrefix } from "@/store/common";
+import { useInstance } from "@/contexts/InstanceContext";
+import { handleError } from "@/lib/error";
 import {
   InstanceSetting_Key,
   InstanceSetting_StorageSetting,
   InstanceSetting_StorageSetting_S3Config,
+  InstanceSetting_StorageSetting_S3ConfigSchema,
   InstanceSetting_StorageSetting_StorageType,
-} from "@/types/proto/api/v1/instance_service";
+  InstanceSetting_StorageSettingSchema,
+  InstanceSettingSchema,
+} from "@/types/proto/api/v1/instance_service_pb";
 import { useTranslate } from "@/utils/i18n";
 import SettingGroup from "./SettingGroup";
 import SettingRow from "./SettingRow";
 import SettingSection from "./SettingSection";
 
-const StorageSection = observer(() => {
+const StorageSection = () => {
   const t = useTranslate();
-  const [instanceStorageSetting, setInstanceStorageSetting] = useState<InstanceSetting_StorageSetting>(
-    InstanceSetting_StorageSetting.fromPartial(instanceStore.getInstanceSettingByKey(InstanceSetting_Key.STORAGE)?.storageSetting || {}),
-  );
+  const { storageSetting: originalSetting, updateSetting, fetchSetting } = useInstance();
+  const [instanceStorageSetting, setInstanceStorageSetting] = useState<InstanceSetting_StorageSetting>(originalSetting);
 
   useEffect(() => {
-    setInstanceStorageSetting(
-      InstanceSetting_StorageSetting.fromPartial(instanceStore.getInstanceSettingByKey(InstanceSetting_Key.STORAGE)?.storageSetting || {}),
-    );
-  }, [instanceStore.getInstanceSettingByKey(InstanceSetting_Key.STORAGE)]);
+    setInstanceStorageSetting(originalSetting);
+  }, [originalSetting]);
 
   const allowSaveStorageSetting = useMemo(() => {
     if (instanceStorageSetting.uploadSizeLimitMb <= 0) {
       return false;
     }
 
-    const origin = InstanceSetting_StorageSetting.fromPartial(
-      instanceStore.getInstanceSettingByKey(InstanceSetting_Key.STORAGE)?.storageSetting || {},
-    );
     if (instanceStorageSetting.storageType === InstanceSetting_StorageSetting_StorageType.LOCAL) {
       if (instanceStorageSetting.filepathTemplate.length === 0) {
         return false;
@@ -55,37 +52,46 @@ const StorageSection = observer(() => {
         return false;
       }
     }
-    return !isEqual(origin, instanceStorageSetting);
-  }, [instanceStorageSetting, instanceStore.state]);
+    return !isEqual(originalSetting, instanceStorageSetting);
+  }, [instanceStorageSetting, originalSetting]);
 
   const handleMaxUploadSizeChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
     let num = parseInt(event.target.value);
     if (Number.isNaN(num)) {
       num = 0;
     }
-    const update: InstanceSetting_StorageSetting = {
+    const update = create(InstanceSetting_StorageSettingSchema, {
       ...instanceStorageSetting,
-      uploadSizeLimitMb: num,
-    };
+      uploadSizeLimitMb: BigInt(num),
+    });
     setInstanceStorageSetting(update);
   };
 
   const handleFilepathTemplateChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    const update: InstanceSetting_StorageSetting = {
+    const update = create(InstanceSetting_StorageSettingSchema, {
       ...instanceStorageSetting,
       filepathTemplate: event.target.value,
-    };
+    });
     setInstanceStorageSetting(update);
   };
 
   const handlePartialS3ConfigChanged = async (s3Config: Partial<InstanceSetting_StorageSetting_S3Config>) => {
-    const update: InstanceSetting_StorageSetting = {
-      ...instanceStorageSetting,
-      s3Config: InstanceSetting_StorageSetting_S3Config.fromPartial({
-        ...instanceStorageSetting.s3Config,
-        ...s3Config,
-      }),
+    const existingS3Config = instanceStorageSetting.s3Config;
+    const s3ConfigInit = {
+      accessKeyId: existingS3Config?.accessKeyId ?? "",
+      accessKeySecret: existingS3Config?.accessKeySecret ?? "",
+      endpoint: existingS3Config?.endpoint ?? "",
+      region: existingS3Config?.region ?? "",
+      bucket: existingS3Config?.bucket ?? "",
+      usePathStyle: existingS3Config?.usePathStyle ?? false,
+      ...s3Config,
     };
+    const update = create(InstanceSetting_StorageSettingSchema, {
+      storageType: instanceStorageSetting.storageType,
+      filepathTemplate: instanceStorageSetting.filepathTemplate,
+      uploadSizeLimitMb: instanceStorageSetting.uploadSizeLimitMb,
+      s3Config: create(InstanceSetting_StorageSetting_S3ConfigSchema, s3ConfigInit),
+    });
     setInstanceStorageSetting(update);
   };
 
@@ -116,19 +122,31 @@ const StorageSection = observer(() => {
   };
 
   const handleStorageTypeChanged = async (storageType: InstanceSetting_StorageSetting_StorageType) => {
-    const update: InstanceSetting_StorageSetting = {
+    const update = create(InstanceSetting_StorageSettingSchema, {
       ...instanceStorageSetting,
       storageType: storageType,
-    };
+    });
     setInstanceStorageSetting(update);
   };
 
   const saveInstanceStorageSetting = async () => {
-    await instanceStore.upsertInstanceSetting({
-      name: `${instanceSettingNamePrefix}${InstanceSetting_Key.STORAGE}`,
-      storageSetting: instanceStorageSetting,
-    });
-    toast.success("Updated");
+    try {
+      await updateSetting(
+        create(InstanceSettingSchema, {
+          name: `instance/settings/${InstanceSetting_Key[InstanceSetting_Key.STORAGE]}`,
+          value: {
+            case: "storageSetting",
+            value: instanceStorageSetting,
+          },
+        }),
+      );
+      await fetchSetting(InstanceSetting_Key.STORAGE);
+      toast.success("Updated");
+    } catch (error: unknown) {
+      handleError(error, toast.error, {
+        context: "Update storage settings",
+      });
+    }
   };
 
   return (
@@ -136,29 +154,33 @@ const StorageSection = observer(() => {
       <SettingGroup title={t("setting.storage-section.current-storage")}>
         <div className="w-full">
           <RadioGroup
-            value={instanceStorageSetting.storageType}
+            value={String(instanceStorageSetting.storageType)}
             onValueChange={(value) => {
-              handleStorageTypeChanged(value as InstanceSetting_StorageSetting_StorageType);
+              handleStorageTypeChanged(Number(value) as InstanceSetting_StorageSetting_StorageType);
             }}
             className="flex flex-row gap-4"
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value={InstanceSetting_StorageSetting_StorageType.DATABASE} id="database" />
+              <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.DATABASE)} id="database" />
               <Label htmlFor="database">{t("setting.storage-section.type-database")}</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value={InstanceSetting_StorageSetting_StorageType.LOCAL} id="local" />
+              <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.LOCAL)} id="local" />
               <Label htmlFor="local">{t("setting.storage-section.type-local")}</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value={InstanceSetting_StorageSetting_StorageType.S3} id="s3" />
+              <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.S3)} id="s3" />
               <Label htmlFor="s3">S3</Label>
             </div>
           </RadioGroup>
         </div>
 
         <SettingRow label={t("setting.system-section.max-upload-size")} tooltip={t("setting.system-section.max-upload-size-hint")}>
-          <Input className="w-24 font-mono" value={instanceStorageSetting.uploadSizeLimitMb} onChange={handleMaxUploadSizeChanged} />
+          <Input
+            className="w-24 font-mono"
+            value={String(instanceStorageSetting.uploadSizeLimitMb)}
+            onChange={handleMaxUploadSizeChanged}
+          />
         </SettingRow>
 
         {instanceStorageSetting.storageType !== InstanceSetting_StorageSetting_StorageType.DATABASE && (
@@ -203,7 +225,11 @@ const StorageSection = observer(() => {
           <SettingRow label="Use Path Style">
             <Switch
               checked={instanceStorageSetting.s3Config?.usePathStyle}
-              onCheckedChange={(checked) => handleS3ConfigUsePathStyleChanged({ target: { checked } } as any)}
+              onCheckedChange={(checked) =>
+                handleS3ConfigUsePathStyleChanged({ target: { checked } } as React.ChangeEvent<HTMLInputElement> & {
+                  target: { checked: boolean };
+                })
+              }
             />
           </SettingRow>
         </SettingGroup>
@@ -216,6 +242,6 @@ const StorageSection = observer(() => {
       </div>
     </SettingSection>
   );
-});
+};
 
 export default StorageSection;

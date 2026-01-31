@@ -1,10 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import App from "@/App";
 import MainLayout from "@/layouts/MainLayout";
 import RootLayout from "@/layouts/RootLayout";
 import Home from "@/pages/Home";
-import Loading from "@/pages/Loading";
 
 const AdminSignIn = lazy(() => import("@/pages/AdminSignIn"));
 const Archived = lazy(() => import("@/pages/Archived"));
@@ -19,17 +18,12 @@ const Setting = lazy(() => import("@/pages/Setting"));
 const SignIn = lazy(() => import("@/pages/SignIn"));
 const SignUp = lazy(() => import("@/pages/SignUp"));
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
-const MemoDetailRedirect = lazy(() => import("./MemoDetailRedirect"));
 
-export enum Routes {
-  ROOT = "/",
-  ATTACHMENTS = "/attachments",
-  INBOX = "/inbox",
-  ARCHIVED = "/archived",
-  SETTING = "/setting",
-  EXPLORE = "/explore",
-  AUTH = "/auth",
-}
+import { ROUTES } from "./routes";
+
+// Backward compatibility alias
+export const Routes = ROUTES;
+export { ROUTES };
 
 const router = createBrowserRouter([
   {
@@ -39,38 +33,10 @@ const router = createBrowserRouter([
       {
         path: Routes.AUTH,
         children: [
-          {
-            path: "",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <SignIn />
-              </Suspense>
-            ),
-          },
-          {
-            path: "admin",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <AdminSignIn />
-              </Suspense>
-            ),
-          },
-          {
-            path: "signup",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <SignUp />
-              </Suspense>
-            ),
-          },
-          {
-            path: "callback",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <AuthCallback />
-              </Suspense>
-            ),
-          },
+          { path: "", element: <SignIn /> },
+          { path: "admin", element: <AdminSignIn /> },
+          { path: "signup", element: <SignUp /> },
+          { path: "callback", element: <AuthCallback /> },
         ],
       },
       {
@@ -80,101 +46,19 @@ const router = createBrowserRouter([
           {
             element: <MainLayout />,
             children: [
-              {
-                path: "",
-                element: <Home />,
-              },
-              {
-                path: Routes.EXPLORE,
-                element: (
-                  <Suspense fallback={<Loading />}>
-                    <Explore />
-                  </Suspense>
-                ),
-              },
-              {
-                path: Routes.ARCHIVED,
-                element: (
-                  <Suspense fallback={<Loading />}>
-                    <Archived />
-                  </Suspense>
-                ),
-              },
-              {
-                path: "u/:username",
-                element: (
-                  <Suspense fallback={<Loading />}>
-                    <UserProfile />
-                  </Suspense>
-                ),
-              },
+              { path: "", element: <Home /> },
+              { path: Routes.EXPLORE, element: <Explore /> },
+              { path: Routes.ARCHIVED, element: <Archived /> },
+              { path: "u/:username", element: <UserProfile /> },
             ],
           },
-          {
-            path: Routes.ATTACHMENTS,
-            element: (
-              <Suspense fallback={<Loading />}>
-                <Attachments />
-              </Suspense>
-            ),
-          },
-          {
-            path: Routes.INBOX,
-            element: (
-              <Suspense fallback={<Loading />}>
-                <Inboxes />
-              </Suspense>
-            ),
-          },
-          {
-            path: Routes.SETTING,
-            element: (
-              <Suspense fallback={<Loading />}>
-                <Setting />
-              </Suspense>
-            ),
-          },
-          {
-            path: "memos/:uid",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <MemoDetail />
-              </Suspense>
-            ),
-          },
-          // Redirect old path to new path.
-          {
-            path: "m/:uid",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <MemoDetailRedirect />
-              </Suspense>
-            ),
-          },
-          {
-            path: "403",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <PermissionDenied />
-              </Suspense>
-            ),
-          },
-          {
-            path: "404",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <NotFound />
-              </Suspense>
-            ),
-          },
-          {
-            path: "*",
-            element: (
-              <Suspense fallback={<Loading />}>
-                <NotFound />
-              </Suspense>
-            ),
-          },
+          { path: Routes.ATTACHMENTS, element: <Attachments /> },
+          { path: Routes.INBOX, element: <Inboxes /> },
+          { path: Routes.SETTING, element: <Setting /> },
+          { path: "memos/:uid", element: <MemoDetail /> },
+          { path: "403", element: <PermissionDenied /> },
+          { path: "404", element: <NotFound /> },
+          { path: "*", element: <NotFound /> },
         ],
       },
     ],

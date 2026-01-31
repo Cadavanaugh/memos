@@ -1,21 +1,24 @@
-import { useContext, useRef } from "react";
+import { useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { memoStore } from "@/store";
+import { useUpdateMemo } from "@/hooks/useMemoQueries";
 import { toggleTaskAtIndex } from "@/utils/markdown-manipulation";
-import { MemoContentContext } from "./MemoContentContext";
+import { useMemoViewContext, useMemoViewDerived } from "../MemoView/MemoViewContext";
+import { TASK_LIST_CLASS, TASK_LIST_ITEM_CLASS } from "./constants";
+import type { ReactMarkdownProps } from "./markdown/types";
 
-interface TaskListItemProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  node?: any; // AST node from react-markdown
+interface TaskListItemProps extends React.InputHTMLAttributes<HTMLInputElement>, ReactMarkdownProps {
   checked?: boolean;
 }
 
-export const TaskListItem: React.FC<TaskListItemProps> = ({ checked, ...props }) => {
-  const context = useContext(MemoContentContext);
+export const TaskListItem: React.FC<TaskListItemProps> = ({ checked, node: _node, ...props }) => {
+  const { memo } = useMemoViewContext();
+  const { readonly } = useMemoViewDerived();
   const checkboxRef = useRef<HTMLButtonElement>(null);
+  const { mutate: updateMemo } = useUpdateMemo();
 
   const handleChange = async (newChecked: boolean) => {
-    // Don't update if readonly or no memo context
-    if (context.readonly || !context.memoName) {
+    // Don't update if readonly or no memo
+    if (readonly || !memo) {
       return;
     }
 
@@ -32,14 +35,19 @@ export const TaskListItem: React.FC<TaskListItemProps> = ({ checked, ...props })
     if (taskIndexStr !== null) {
       taskIndex = parseInt(taskIndexStr);
     } else {
-      // Fallback: Calculate index by counting ALL task list items in the memo
-      // Use the container ref from context for proper scoping
-      const container = context.containerRef?.current;
-      if (!container) {
-        return;
+      // Fallback: Calculate index by counting task list items
+      // Walk up to find the parent element with all task items
+      let searchRoot = listItem.parentElement;
+      while (searchRoot && !searchRoot.classList.contains(TASK_LIST_CLASS)) {
+        searchRoot = searchRoot.parentElement;
       }
 
-      const allTaskItems = container.querySelectorAll("li.task-list-item");
+      // If not found, search from the document root
+      if (!searchRoot) {
+        searchRoot = document.body;
+      }
+
+      const allTaskItems = searchRoot.querySelectorAll(`li.${TASK_LIST_ITEM_CLASS}`);
       for (let i = 0; i < allTaskItems.length; i++) {
         if (allTaskItems[i] === listItem) {
           taskIndex = i;
@@ -49,24 +57,16 @@ export const TaskListItem: React.FC<TaskListItemProps> = ({ checked, ...props })
     }
 
     // Update memo content using the string manipulation utility
-    const memo = memoStore.getMemoByName(context.memoName);
-    if (!memo) {
-      return;
-    }
-
     const newContent = toggleTaskAtIndex(memo.content, taskIndex, newChecked);
-    await memoStore.updateMemo(
-      {
+    updateMemo({
+      update: {
         name: memo.name,
         content: newContent,
       },
-      ["content"],
-    );
+      updateMask: ["content"],
+    });
   };
 
   // Override the disabled prop from remark-gfm (which defaults to true)
-  // We want interactive checkboxes, only disabled when readonly
-  return (
-    <Checkbox ref={checkboxRef} checked={checked} disabled={context.readonly} onCheckedChange={handleChange} className={props.className} />
-  );
+  return <Checkbox ref={checkboxRef} checked={checked} disabled={readonly} onCheckedChange={handleChange} className={props.className} />;
 };

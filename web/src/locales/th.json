@@ -152,8 +152,6 @@
     "no-archived-memos": "ไม่มีบันทึกช่วยจำที่ถูกเก็บถาวร",
     "no-memos": "ไม่มีบันทึกช่วยจำ",
     "order-by": "เรียงตาม",
-    "remove-completed-task-list-items": "ลบที่ทำแล้ว",
-    "remove-completed-task-list-items-confirm": "คุณแน่ใจว่าจะลบรายการที่ทำแล้วทั้งหมดหรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้",
     "search-placeholder": "ค้นหาบันทึกช่วยจำ...",
     "show-less": "แสดงน้อยลง",
     "show-more": "แสดงเพิ่มเติม",
@@ -183,7 +181,6 @@
     "no-data": "ไม่พบข้อมูล",
     "password-changed": "เปลี่ยนรหัสผ่านแล้ว",
     "password-not-match": "รหัสผ่านไม่ตรงกัน",
-    "remove-completed-task-list-items-successfully": "ลบเรียบร้อย!",
     "restored-successfully": "กู้คืนเรียบร้อยแล้ว",
     "succeed-copy-link": "คัดลอกลิงก์เรียบร้อยแล้ว",
     "update-succeed": "อัปเดตเรียบร้อยแล้ว",
@@ -251,21 +248,6 @@
       "title": "โทเค็นการเข้าถึง",
       "token": "โทเค็น"
     },
-    "user-sessions-section": {
-      "title": "เซสชันที่ใช้งานอยู่",
-      "description": "รายการเซสชันที่ใช้งานอยู่ทั้งหมดสำหรับบัญชีของคุณ เซสชันจะหมดอายุอัตโนมัติหลังจากไม่มีการใช้งาน 2 สัปดาห์ คุณสามารถเพิกถอนเซสชันใดก็ได้ยกเว้นเซสชันปัจจุบัน",
-      "device": "อุปกรณ์",
-      "location": "ตำแหน่ง",
-      "last-active": "ใช้งานล่าสุด",
-      "expires": "หมดอายุ",
-      "current": "ปัจจุบัน",
-      "never": "ไม่หมดอายุ",
-      "session-revocation": "คุณแน่ใจหรือว่าจะเพิกถอนเซสชัน {{sessionId}}? คุณจะต้องเข้าสู่ระบบใหม่บนอุปกรณ์นั้น",
-      "session-revoked": "เพิกถอนเซสชันสำเร็จ",
-      "revoke-session": "เพิกถอนเซสชัน",
-      "cannot-revoke-current": "ไม่สามารถเพิกถอนเซสชันปัจจุบันได้",
-      "no-sessions": "ไม่พบเซสชันที่ใช้งานอยู่"
-    },
     "account-section": {
       "change-password": "เปลี่ยนรหัสผ่าน",
       "email-note": "ไม่บังคับ",
@@ -292,7 +274,7 @@
     },
     "memo-related": "บันทึก",
     "memo-related-settings": {
-      "content-lenght-limit": "จำกัดความยาวเนื้อหา (ไบต์)",
+      "content-length-limit": "จำกัดความยาวเนื้อหา (ไบต์)",
       "enable-blur-nsfw-content": "เปิดใช้งานการเบลอเนื้อหาไม่เหมาะสม (NSFW)",
       "enable-memo-comments": "เปิดใช้งานความคิดเห็นในบันทึก",
       "enable-memo-location": "เปิดใช้งานตำแหน่งในบันทึก",

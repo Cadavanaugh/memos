@@ -154,8 +154,6 @@
     "no-archived-memos": "Nema arhiviranih memoa.",
     "no-memos": "Nema memoa.",
     "order-by": "Sortiraj po",
-    "remove-completed-task-list-items": "Ukloni završene",
-    "remove-completed-task-list-items-confirm": "Jesi li siguran da želiš ukloniti sve završene zadatke? OVA AKCIJA JE NEPOVRATNA",
     "search-placeholder": "Pretraži memoe...",
     "show-less": "Prikaži manje",
     "show-more": "Prikaži više",
@@ -183,7 +181,6 @@
     "no-data": "Nema podataka.",
     "password-changed": "Lozinka je promijenjena",
     "password-not-match": "Lozinke se ne podudaraju.",
-    "remove-completed-task-list-items-successfully": "Uspješno uklonjeno",
     "restored-successfully": "Uspješno vraćeno",
     "succeed-copy-link": "Link je uspješno kopiran.",
     "update-succeed": "Ažuriranje uspješno",
@@ -251,21 +248,6 @@
       "title": "Tokeni pristupa",
       "token": "Token"
     },
-    "user-sessions-section": {
-      "title": "Aktivne sesije",
-      "description": "Popis svih aktivnih sesija za tvoj račun. Sesije automatski istječu 2 tjedna nakon zadnje aktivnosti. Možeš opozvati bilo koju sesiju osim trenutne.",
-      "device": "Uređaj",
-      "location": "Lokacija",
-      "last-active": "Zadnja aktivnost",
-      "expires": "Istječe",
-      "current": "Trenutna",
-      "never": "Nikada",
-      "session-revocation": "Jesi li siguran da želiš opozvati sesiju {{sessionId}}? Morat ćeš se ponovno prijaviti na tom uređaju.",
-      "session-revoked": "Sesija uspješno opozvana",
-      "revoke-session": "Opozovi sesiju",
-      "cannot-revoke-current": "Trenutna sesija se ne može opozvati",
-      "no-sessions": "Nema aktivnih sesija"
-    },
     "account-section": {
       "change-password": "Promijeni lozinku",
       "email-note": "Neobavezno",
@@ -292,7 +274,7 @@
     },
     "memo-related": "Memo",
     "memo-related-settings": {
-      "content-lenght-limit": "Ograničenje duljine sadržaja (Bajt)",
+      "content-length-limit": "Ograničenje duljine sadržaja (Bajt)",
       "enable-blur-nsfw-content": "Omogući zamućenje osjetljivog sadržaja (NSFW)",
       "enable-memo-comments": "Omogući komentare na memoima",
       "enable-memo-location": "Omogući lokaciju memoa",

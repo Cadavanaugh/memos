@@ -1,13 +1,11 @@
-import { observer } from "mobx-react-lite";
-import { MemoRenderContext } from "@/components/MasonryView";
 import MemoView from "@/components/MemoView";
 import PagedMemoList from "@/components/PagedMemoList";
 import { useMemoFilters, useMemoSorting } from "@/hooks";
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { State } from "@/types/proto/api/v1/common";
-import { Memo, Visibility } from "@/types/proto/api/v1/memo_service";
+import { State } from "@/types/proto/api/v1/common_pb";
+import { Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 
-const Explore = observer(() => {
+const Explore = () => {
   const currentUser = useCurrentUser();
 
   // Determine visibility filter based on authentication status
@@ -31,15 +29,13 @@ const Explore = observer(() => {
 
   return (
     <PagedMemoList
-      renderer={(memo: Memo, context?: MemoRenderContext) => (
-        <MemoView key={`${memo.name}-${memo.updateTime}`} memo={memo} showCreator showVisibility compact={context?.compact} />
-      )}
+      renderer={(memo: Memo) => <MemoView key={`${memo.name}-${memo.updateTime}`} memo={memo} showCreator showVisibility compact />}
       listSort={listSort}
       orderBy={orderBy}
       filter={memoFilter}
       showCreator
     />
   );
-});
+};
 
 export default Explore;

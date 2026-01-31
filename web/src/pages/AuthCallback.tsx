@@ -1,12 +1,12 @@
-import { LoaderIcon } from "lucide-react";
-import { observer } from "mobx-react-lite";
-import { ClientError } from "nice-grpc-web";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { authServiceClient } from "@/grpcweb";
+import { setAccessToken } from "@/auth-state";
+import { authServiceClient } from "@/connect";
+import { useAuth } from "@/contexts/AuthContext";
 import { absolutifyLink } from "@/helpers/utils";
 import useNavigateTo from "@/hooks/useNavigateTo";
-import { initialUserStore } from "@/store/user";
+import { handleError } from "@/lib/error";
 import { validateOAuthState } from "@/utils/oauth";
 
 interface State {
@@ -14,8 +14,9 @@ interface State {
   errorMessage: string;
 }
 
-const AuthCallback = observer(() => {
+const AuthCallback = () => {
   const navigateTo = useNavigateTo();
+  const { initialize } = useAuth();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<State>({
     loading: true,
@@ -71,40 +72,50 @@ const AuthCallback = observer(() => {
 
     (async () => {
       try {
-        await authServiceClient.createSession({
-          ssoCredentials: {
-            idpId: identityProviderId,
-            code,
-            redirectUri,
-            codeVerifier: codeVerifier || "", // Pass PKCE code_verifier for token exchange
+        const response = await authServiceClient.signIn({
+          credentials: {
+            case: "ssoCredentials",
+            value: {
+              idpId: identityProviderId,
+              code,
+              redirectUri,
+              codeVerifier: codeVerifier || "", // Pass PKCE code_verifier for token exchange
+            },
           },
         });
+        // Store access token from login response
+        if (response.accessToken) {
+          setAccessToken(response.accessToken, response.accessTokenExpiresAt ? timestampDate(response.accessTokenExpiresAt) : undefined);
+        }
         setState({
           loading: false,
           errorMessage: "",
         });
-        await initialUserStore();
+        await initialize();
         // Redirect to return URL if specified, otherwise home
         navigateTo(returnUrl || "/");
-      } catch (error: any) {
-        console.error(error);
-        setState({
-          loading: false,
-          errorMessage: (error as ClientError).details,
+      } catch (error: unknown) {
+        handleError(error, () => {}, {
+          fallbackMessage: "Failed to authenticate.",
+          onError: (err) => {
+            const message = err instanceof Error ? err.message : "Failed to authenticate.";
+            setState({
+              loading: false,
+              errorMessage: message,
+            });
+          },
         });
       }
     })();
-  }, [searchParams]);
+  }, [searchParams, navigateTo]);
+
+  if (state.loading) return null;
 
   return (
     <div className="p-4 py-24 w-full h-full flex justify-center items-center">
-      {state.loading ? (
-        <LoaderIcon className="animate-spin text-foreground" />
-      ) : (
-        <div className="max-w-lg font-mono whitespace-pre-wrap opacity-80">{state.errorMessage}</div>
-      )}
+      <div className="max-w-lg font-mono whitespace-pre-wrap opacity-80">{state.errorMessage}</div>
     </div>
   );
-});
+};
 
 export default AuthCallback;

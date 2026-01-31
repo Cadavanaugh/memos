@@ -152,8 +152,6 @@
     "no-archived-memos": "Ni arhiviranih beležk.",
     "no-memos": "Ni beležk.",
     "order-by": "Razvrsti po",
-    "remove-completed-task-list-items": "Odstrani končane",
-    "remove-completed-task-list-items-confirm": "Ste prepričani, da želite odstraniti vse končane naloge? TO DEJANJE JE NEPOVRATNO",
     "search-placeholder": "Poišči beležke",
     "show-less": "Prikaži manj",
     "show-more": "Prikaži več",
@@ -183,7 +181,6 @@
     "no-data": "Ne najdem podatkov.",
     "password-changed": "Geslo je spremenjeno",
     "password-not-match": "Gesli se ne ujemata.",
-    "remove-completed-task-list-items-successfully": "Odstranitev uspešna!",
     "restored-successfully": "Uspešno obnovljeno",
     "succeed-copy-link": "Povezava je uspešno skopirana.",
     "update-succeed": "Posodobitev je uspešna",
@@ -251,21 +248,6 @@
       "title": "Dostopni žetoni",
       "token": "Žeton"
     },
-    "user-sessions-section": {
-      "title": "Aktivne seje",
-      "description": "Seznam vseh aktivnih sej vašega računa. Seje samodejno potečejo 2 tedna po zadnji aktivnosti. Lahko prekličete katerokoli sejo razen trenutne.",
-      "device": "Naprava",
-      "location": "Lokacija",
-      "last-active": "Zadnja aktivnost",
-      "expires": "Poteče",
-      "current": "Trenutna",
-      "never": "Nikoli",
-      "session-revocation": "Ali ste prepričani, da želite preklicati sejo {{sessionId}}? Ponovno se boste morali prijaviti na tej napravi.",
-      "session-revoked": "Seja uspešno preklicana",
-      "revoke-session": "Prekliči sejo",
-      "cannot-revoke-current": "Trenutne seje ni mogoče preklicati",
-      "no-sessions": "Ni aktivnih sej"
-    },
     "account-section": {
       "change-password": "Zamenjaj geslo",
       "email-note": "Opcijsko",
@@ -292,7 +274,7 @@
     },
     "memo-related": "Beležka",
     "memo-related-settings": {
-      "content-lenght-limit": "Omejitev dolžine vsebine (bajt)",
+      "content-length-limit": "Omejitev dolžine vsebine (bajt)",
       "enable-blur-nsfw-content": "Omogoči zameglitev občutljive vsebine (NSFW)",
       "enable-memo-comments": "Omogoči komentarje na beležkah",
       "enable-memo-location": "Omogoči lokacijo beležk",

@@ -15,6 +15,33 @@ import (
 )
 
 func (s *APIV1Service) ListMemoReactions(ctx context.Context, request *v1pb.ListMemoReactionsRequest) (*v1pb.ListMemoReactionsResponse, error) {
+	// Extract memo UID and check visibility.
+	memoUID, err := ExtractMemoUIDFromName(request.Name)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid memo name: %v", err)
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get memo: %v", err)
+	}
+	if memo == nil {
+		return nil, status.Errorf(codes.NotFound, "memo not found")
+	}
+
+	// Check memo visibility.
+	if memo.Visibility != store.Public {
+		user, err := s.fetchCurrentUser(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get user")
+		}
+		if user == nil {
+			return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+		}
+		if memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user) {
+			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	}
+
 	reactions, err := s.Store.ListReactions(ctx, &store.FindReaction{
 		ContentID: &request.Name,
 	})
@@ -33,13 +60,32 @@ func (s *APIV1Service) ListMemoReactions(ctx context.Context, request *v1pb.List
 }
 
 func (s *APIV1Service) UpsertMemoReaction(ctx context.Context, request *v1pb.UpsertMemoReactionRequest) (*v1pb.Reaction, error) {
-	user, err := s.GetCurrentUser(ctx)
+	user, err := s.fetchCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user")
 	}
 	if user == nil {
 		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
+
+	// Extract memo UID and check visibility before allowing reaction.
+	memoUID, err := ExtractMemoUIDFromName(request.Reaction.ContentId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid memo name: %v", err)
+	}
+	memo, err := s.Store.GetMemo(ctx, &store.FindMemo{UID: &memoUID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get memo: %v", err)
+	}
+	if memo == nil {
+		return nil, status.Errorf(codes.NotFound, "memo not found")
+	}
+
+	// Check memo visibility.
+	if memo.Visibility == store.Private && memo.CreatorID != user.ID && !isSuperUser(user) {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
 	reaction, err := s.Store.UpsertReaction(ctx, &store.Reaction{
 		CreatorID:    user.ID,
 		ContentID:    request.Reaction.ContentId,
@@ -55,7 +101,7 @@ func (s *APIV1Service) UpsertMemoReaction(ctx context.Context, request *v1pb.Ups
 }
 
 func (s *APIV1Service) DeleteMemoReaction(ctx context.Context, request *v1pb.DeleteMemoReactionRequest) (*emptypb.Empty, error) {
-	user, err := s.GetCurrentUser(ctx)
+	user, err := s.fetchCurrentUser(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
 	}
@@ -63,7 +109,7 @@ func (s *APIV1Service) DeleteMemoReaction(ctx context.Context, request *v1pb.Del
 		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 	}
 
-	reactionID, err := ExtractReactionIDFromName(request.Name)
+	_, reactionID, err := ExtractMemoReactionIDFromName(request.Name)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid reaction name: %v", err)
 	}
@@ -95,8 +141,10 @@ func (s *APIV1Service) DeleteMemoReaction(ctx context.Context, request *v1pb.Del
 
 func convertReactionFromStore(reaction *store.Reaction) *v1pb.Reaction {
 	reactionUID := fmt.Sprintf("%d", reaction.ID)
+	// Generate nested resource name: memos/{memo}/reactions/{reaction}
+	// reaction.ContentID already contains "memos/{memo}"
 	return &v1pb.Reaction{
-		Name:         fmt.Sprintf("%s%s", ReactionNamePrefix, reactionUID),
+		Name:         fmt.Sprintf("%s/%s%s", reaction.ContentID, ReactionNamePrefix, reactionUID),
 		Creator:      fmt.Sprintf("%s%d", UserNamePrefix, reaction.CreatorID),
 		ContentId:    reaction.ContentID,
 		ReactionType: reaction.ReactionType,

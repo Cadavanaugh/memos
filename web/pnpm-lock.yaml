@@ -8,15 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@dnd-kit/core':
-        specifier: ^6.3.1
-        version: 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@dnd-kit/sortable':
-        specifier: ^10.0.0
-        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
-      '@dnd-kit/utilities':
-        specifier: ^3.2.2
-        version: 3.2.2(react@18.3.1)
+      '@connectrpc/connect':
+        specifier: ^2.1.1
+        version: 2.1.1(@bufbuild/protobuf@2.10.1)
+      '@connectrpc/connect-web':
+        specifier: ^2.1.1
+        version: 2.1.1(@bufbuild/protobuf@2.10.1)(@connectrpc/connect@2.1.1(@bufbuild/protobuf@2.10.1))
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@18.3.27)(react@18.3.1)
@@ -62,6 +59,12 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.17
         version: 4.1.17(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1))
+      '@tanstack/react-query':
+        specifier: ^5.90.12
+        version: 5.90.12(react@18.3.1)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.91.1
+        version: 5.91.1(@tanstack/react-query@5.90.12(react@18.3.1))(react@18.3.1)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -83,27 +86,36 @@ importers:
       i18next:
         specifier: ^25.6.3
         version: 25.6.3(typescript@5.9.3)
+      katex:
+        specifier: ^0.16.27
+        version: 0.16.27
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
+      leaflet.markercluster:
+        specifier: ^1.5.3
+        version: 1.5.3(leaflet@1.9.4)
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@18.3.1)
+      mdast-util-from-markdown:
+        specifier: ^2.0.2
+        version: 2.0.2
+      mdast-util-gfm:
+        specifier: ^3.1.0
+        version: 3.1.0
       mermaid:
         specifier: ^11.12.1
         version: 11.12.1
+      micromark-extension-gfm:
+        specifier: ^3.0.0
+        version: 3.0.0
       mime:
         specifier: ^4.1.0
         version: 4.1.0
-      mobx:
-        specifier: ^6.15.0
-        version: 6.15.0
-      mobx-react-lite:
-        specifier: ^4.1.1
-        version: 4.1.1(mobx@6.15.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -122,15 +134,15 @@ importers:
       react-leaflet:
         specifier: ^4.2.1
         version: 4.2.1(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-leaflet-cluster:
+        specifier: ^2.1.0
+        version: 2.1.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react-leaflet@4.2.1(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@18.3.27)(react@18.3.1)
       react-router-dom:
         specifier: ^7.9.6
         version: 7.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react-simple-pull-to-refresh:
-        specifier: ^1.3.3
-        version: 1.3.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-use:
         specifier: ^17.6.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -177,6 +189,9 @@ importers:
       '@types/d3':
         specifier: ^7.4.3
         version: 7.4.3
+      '@types/hast':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/katex':
         specifier: ^0.16.7
         version: 0.16.7
@@ -216,9 +231,6 @@ importers:
       long:
         specifier: ^5.3.2
         version: 5.3.2
-      nice-grpc-web:
-        specifier: ^3.3.9
-        version: 3.3.9(ws@8.18.3)
       terser:
         specifier: ^5.44.1
         version: 5.44.1
@@ -401,27 +413,16 @@ packages:
   '@chevrotain/utils@11.0.3':
     resolution: {integrity: sha512-YslZMgtJUyuMbZ+aKvfF3x1f5liK4mWNxghFRv7jqRR9C3R3fAOGTTKvxXDa2Y1s9zSbcpuO0cAxDYsc9SrXoQ==}
 
-  '@dnd-kit/accessibility@3.1.1':
-    resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
+  '@connectrpc/connect-web@2.1.1':
+    resolution: {integrity: sha512-J8317Q2MaFRCT1jzVR1o06bZhDIBmU0UAzWx6xOIXzOq8+k71/+k7MUF7AwcBUX+34WIvbm5syRgC5HXQA8fOg==}
     peerDependencies:
-      react: '>=16.8.0'
+      '@bufbuild/protobuf': ^2.7.0
+      '@connectrpc/connect': 2.1.1
 
-  '@dnd-kit/core@6.3.1':
-    resolution: {integrity: sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==}
+  '@connectrpc/connect@2.1.1':
+    resolution: {integrity: sha512-JzhkaTvM73m2K1URT6tv53k2RwngSmCXLZJgK580qNQOXRzZRR/BCMfZw3h+90JpnG6XksP5bYT+cz0rpUzUWQ==}
     peerDependencies:
-      react: '>=16.8.0'
-      react-dom: '>=16.8.0'
-
-  '@dnd-kit/sortable@10.0.0':
-    resolution: {integrity: sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg==}
-    peerDependencies:
-      '@dnd-kit/core': ^6.3.0
-      react: '>=16.8.0'
-
-  '@dnd-kit/utilities@3.2.2':
-    resolution: {integrity: sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==}
-    peerDependencies:
-      react: '>=16.8.0'
+      '@bufbuild/protobuf': ^2.7.0
 
   '@emotion/babel-plugin@11.13.5':
     resolution: {integrity: sha512-pxHCpT2ex+0q+HH91/zsdHkw/lXd468DIN2zvfvLtPKLLMo6gQj7oLObq8PhkrxOZb/gGCq03S3Z7PDhS8pduQ==}
@@ -1319,6 +1320,23 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
+  '@tanstack/query-core@5.90.12':
+    resolution: {integrity: sha512-T1/8t5DhV/SisWjDnaiU2drl6ySvsHj1bHBCWNXd+/T+Hh1cf6JodyEYMd5sgwm+b/mETT4EV3H+zCVczCU5hg==}
+
+  '@tanstack/query-devtools@5.91.1':
+    resolution: {integrity: sha512-l8bxjk6BMsCaVQH6NzQEE/bEgFy1hAs5qbgXl0xhzezlaQbPk6Mgz9BqEg2vTLPOHD8N4k+w/gdgCbEzecGyNg==}
+
+  '@tanstack/react-query-devtools@5.91.1':
+    resolution: {integrity: sha512-tRnJYwEbH0kAOuToy8Ew7bJw1lX3AjkkgSlf/vzb+NpnqmHPdWM+lA2DSdGQSLi1SU0PDRrrCI1vnZnci96CsQ==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.90.10
+      react: ^18 || ^19
+
+  '@tanstack/react-query@5.90.12':
+    resolution: {integrity: sha512-graRZspg7EoEaw0a8faiUASCyJrqjKPdqJ9EwuDRUF9mEYJ1YPczI9H+/agJ0mOJkPCJDk0lsz5QTrLZ/jQ2rg==}
+    peerDependencies:
+      react: ^18 || ^19
+
   '@tweenjs/tween.js@25.0.0':
     resolution: {integrity: sha512-XKLA6syeBUaPzx4j3qwMqzzq+V4uo72BnlbOjmuljLrRqdsd3qnzvZZoxvMHZ23ndsRS4aufU6JOZYpCbU6T1A==}
 
@@ -1509,9 +1527,6 @@ packages:
 
   '@xobotyi/scrollbar-width@1.9.5':
     resolution: {integrity: sha512-N8tkAACJx2ww8vFMneJmaAgmjAG1tnVBZJRLRcx061tmsLRZHSEZSLuGWnwPtunsSLvSqXQ2wfp7Mgqg1I+2dQ==}
-
-  abort-controller-x@0.4.3:
-    resolution: {integrity: sha512-VtUwTNU8fpMwvWGn4xE93ywbogTYsuT+AUxAXOeelbXuQVIwNmC5YLeho9sH4vZ4ITW8414TTAOG1nW6uIVHCA==}
 
   accessor-fn@1.5.3:
     resolution: {integrity: sha512-rkAofCwe/FvYFUlMB0v0gWmhqtfAtV1IUkdPbfhTUyYniu5LrC0A0UJkTH0Jv3S8SvwkmfuAlY+mQIJATdocMA==}
@@ -2068,11 +2083,6 @@ packages:
     resolution: {integrity: sha512-+Pgi+vMuUNkJyExiMBt5IlFoMyKnr5zhJ4Uspz58WOhBF5QoIZkFyNHIbBAtHwzVAgk5RtndVNsDRN61/mmDqg==}
     engines: {node: '>=12'}
 
-  isomorphic-ws@5.0.0:
-    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
-    peerDependencies:
-      ws: '*'
-
   jerrypick@1.1.2:
     resolution: {integrity: sha512-YKnxXEekXKzhpf7CLYA0A+oDP8V0OhICNCr5lv96FvSsDEmrb0GKM776JgQvHTMjr7DTTPEVv/1Ciaw0uEWzBA==}
     engines: {node: '>=12'}
@@ -2080,9 +2090,6 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
-
-  js-base64@3.7.8:
-    resolution: {integrity: sha512-hNngCeKxIUQiEUN3GPJOkz4wF/YvdUdbNL9hsBcMQTkKzboD7T/q3OYOuuPZLUE6dBxSGpwhk5mwuDud7JVAow==}
 
   js-cookie@2.2.1:
     resolution: {integrity: sha512-HvdH2LzI/EAZcUwA8+0nKNtWHqS+ZmijLA30RwZA0bo7ToCckjK5MkGhjED9KoRcXO6BaGI3I9UIzSA1FKFPOQ==}
@@ -2107,8 +2114,8 @@ packages:
     resolution: {integrity: sha512-4+5mNNf4vZDSwPhKprKwz3330iisPrb08JyMgbsdFrimBCKNHecua/WBwvVg3n7vwx0C1ARjfhwIpbrbd9n5wg==}
     engines: {node: '>=12'}
 
-  katex@0.16.25:
-    resolution: {integrity: sha512-woHRUZ/iF23GBP1dkDQMh1QBad9dmr8/PAwNA54VrSOVYgI12MAcE14TqnDdQOdzyEonGzMepYnqBMYdsoAr8Q==}
+  katex@0.16.27:
+    resolution: {integrity: sha512-aeQoDkuRWSqQN6nSvVCEFvfXdqo1OQiCmmW1kc9xSdjutPv7BGO7pqY9sQRJpMOGrEdfDgF2TfRXe5eUAD2Waw==}
     hasBin: true
 
   khroma@2.1.0:
@@ -2126,6 +2133,11 @@ packages:
 
   layout-base@2.0.1:
     resolution: {integrity: sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg==}
+
+  leaflet.markercluster@1.5.3:
+    resolution: {integrity: sha512-vPTw/Bndq7eQHjLBVlWpnGeLa3t+3zGiuM7fJwCkiMFq+nmRuG3RI3f7f4N4TDX7T4NpbAXpR2+NTRSEGfCSeA==}
+    peerDependencies:
+      leaflet: ^1.3.1
 
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
@@ -2391,22 +2403,6 @@ packages:
   mlly@1.8.0:
     resolution: {integrity: sha512-l8D9ODSRWLe2KHJSifWGwBqpTZXIXTeo8mlKjY+E2HAakaTeNpqAyBZ8GSqLzHgw4XmHmC8whvpjJNMbFZN7/g==}
 
-  mobx-react-lite@4.1.1:
-    resolution: {integrity: sha512-iUxiMpsvNraCKXU+yPotsOncNNmyeS2B5DKL+TL6Tar/xm+wwNJAubJmtRSeAoYawdZqwv8Z/+5nPRHeQxTiXg==}
-    peerDependencies:
-      mobx: ^6.9.0
-      react: ^16.8.0 || ^17 || ^18 || ^19
-      react-dom: '*'
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
-
-  mobx@6.15.0:
-    resolution: {integrity: sha512-UczzB+0nnwGotYSgllfARAqWCJ5e/skuV2K/l+Zyck/H6pJIhLXuBnz+6vn2i211o7DtbE78HQtsYEKICHGI+g==}
-
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -2420,12 +2416,6 @@ packages:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
-
-  nice-grpc-common@2.0.2:
-    resolution: {integrity: sha512-7RNWbls5kAL1QVUOXvBsv1uO0wPQK3lHv+cY1gwkTzirnG1Nop4cBJZubpgziNbaVc/bl9QJcyvsf/NQxa3rjQ==}
-
-  nice-grpc-web@3.3.9:
-    resolution: {integrity: sha512-CiCQLdLTux9D4try8XlHW9tHIP/uLB+aciNKErDNLUM6kzhPFaVh8q+oTkoVGOjxOacEzlOwQRRjwQETAx5lVw==}
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
@@ -2545,6 +2535,14 @@ packages:
     peerDependencies:
       react: '>=16.13.1'
 
+  react-leaflet-cluster@2.1.0:
+    resolution: {integrity: sha512-16X7XQpRThQFC4PH4OpXHimGg19ouWmjxjtpxOeBKpvERSvIRqTx7fvhTwkEPNMFTQ8zTfddz6fRTUmUEQul7g==}
+    peerDependencies:
+      leaflet: ^1.8.0
+      react: ^18.0.0
+      react-dom: ^18.0.0
+      react-leaflet: ^4.0.0
+
   react-leaflet@4.2.1:
     resolution: {integrity: sha512-p9chkvhcKrWn/H/1FFeVSqLdReGwn2qmiobOQGO3BifX+/vV/39qhY8dGqbdcPh1e6jxh/QHriLXr7a4eLFK4Q==}
     peerDependencies:
@@ -2598,12 +2596,6 @@ packages:
     peerDependenciesMeta:
       react-dom:
         optional: true
-
-  react-simple-pull-to-refresh@1.3.3:
-    resolution: {integrity: sha512-6qXsa5RtNVmKJhLWvDLIX8UK51HFtCEGjdqQGf+M1Qjrcc4qH4fki97sgVpGEFBRwbY7DiVDA5N5p97kF16DTw==}
-    peerDependencies:
-      react: ^16.10.2 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.10.2 || ^17.0.0 || ^18.0.0
 
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
@@ -2810,9 +2802,6 @@ packages:
   ts-easing@0.2.0:
     resolution: {integrity: sha512-Z86EW+fFFh/IFB1fqQ3/+7Zpf9t2ebOAxNI/V6Wo7r5gqiqtxmgTlQ1qbqQcjLKYeSHPTsEmvlJUDg/EuL0uHQ==}
 
-  ts-error@1.0.6:
-    resolution: {integrity: sha512-tLJxacIQUM82IR7JO1UUkKlYuUTmoY9HBJAmNWFzheSlDS5SPMcNIepejHJa4BpPQLAcbRhRf3GDJzyj6rbKvA==}
-
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -2879,11 +2868,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  use-sync-external-store@1.6.0:
-    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   uuid@11.1.0:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
@@ -2964,18 +2948,6 @@ packages:
 
   web-namespaces@2.0.1:
     resolution: {integrity: sha512-bKr1DkiNa2krS7qxNtdrtHAmzuYGFQLiQ13TsorsdT6ULTkPLKuu5+GsFpDlg6JFjUTwX2DyhMPG2be8uPrqsQ==}
-
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -3166,30 +3138,14 @@ snapshots:
 
   '@chevrotain/utils@11.0.3': {}
 
-  '@dnd-kit/accessibility@3.1.1(react@18.3.1)':
+  '@connectrpc/connect-web@2.1.1(@bufbuild/protobuf@2.10.1)(@connectrpc/connect@2.1.1(@bufbuild/protobuf@2.10.1))':
     dependencies:
-      react: 18.3.1
-      tslib: 2.8.1
+      '@bufbuild/protobuf': 2.10.1
+      '@connectrpc/connect': 2.1.1(@bufbuild/protobuf@2.10.1)
 
-  '@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@connectrpc/connect@2.1.1(@bufbuild/protobuf@2.10.1)':
     dependencies:
-      '@dnd-kit/accessibility': 3.1.1(react@18.3.1)
-      '@dnd-kit/utilities': 3.2.2(react@18.3.1)
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      tslib: 2.8.1
-
-  '@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@dnd-kit/utilities': 3.2.2(react@18.3.1)
-      react: 18.3.1
-      tslib: 2.8.1
-
-  '@dnd-kit/utilities@3.2.2(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-      tslib: 2.8.1
+      '@bufbuild/protobuf': 2.10.1
 
   '@emotion/babel-plugin@11.13.5':
     dependencies:
@@ -3990,6 +3946,21 @@ snapshots:
       tailwindcss: 4.1.17
       vite: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)
 
+  '@tanstack/query-core@5.90.12': {}
+
+  '@tanstack/query-devtools@5.91.1': {}
+
+  '@tanstack/react-query-devtools@5.91.1(@tanstack/react-query@5.90.12(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@tanstack/query-devtools': 5.91.1
+      '@tanstack/react-query': 5.90.12(react@18.3.1)
+      react: 18.3.1
+
+  '@tanstack/react-query@5.90.12(react@18.3.1)':
+    dependencies:
+      '@tanstack/query-core': 5.90.12
+      react: 18.3.1
+
   '@tweenjs/tween.js@25.0.0': {}
 
   '@types/babel__core@7.20.5':
@@ -4211,8 +4182,6 @@ snapshots:
       - supports-color
 
   '@xobotyi/scrollbar-width@1.9.5': {}
-
-  abort-controller-x@0.4.3: {}
 
   accessor-fn@1.5.3: {}
 
@@ -4848,15 +4817,9 @@ snapshots:
 
   is-plain-obj@4.1.0: {}
 
-  isomorphic-ws@5.0.0(ws@8.18.3):
-    dependencies:
-      ws: 8.18.3
-
   jerrypick@1.1.2: {}
 
   jiti@2.6.1: {}
-
-  js-base64@3.7.8: {}
 
   js-cookie@2.2.1: {}
 
@@ -4872,7 +4835,7 @@ snapshots:
     dependencies:
       lodash-es: 4.17.21
 
-  katex@0.16.25:
+  katex@0.16.27:
     dependencies:
       commander: 8.3.0
 
@@ -4891,6 +4854,10 @@ snapshots:
   layout-base@1.0.2: {}
 
   layout-base@2.0.1: {}
+
+  leaflet.markercluster@1.5.3(leaflet@1.9.4):
+    dependencies:
+      leaflet: 1.9.4
 
   leaflet@1.9.4: {}
 
@@ -5163,7 +5130,7 @@ snapshots:
       dagre-d3-es: 7.0.13
       dayjs: 1.11.19
       dompurify: 3.3.0
-      katex: 0.16.25
+      katex: 0.16.27
       khroma: 2.1.0
       lodash-es: 4.17.21
       marked: 16.4.2
@@ -5255,7 +5222,7 @@ snapshots:
     dependencies:
       '@types/katex': 0.16.7
       devlop: 1.1.0
-      katex: 0.16.25
+      katex: 0.16.27
       micromark-factory-space: 2.0.1
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
@@ -5384,16 +5351,6 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.6.1
 
-  mobx-react-lite@4.1.1(mobx@6.15.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      mobx: 6.15.0
-      react: 18.3.1
-      use-sync-external-store: 1.6.0(react@18.3.1)
-    optionalDependencies:
-      react-dom: 18.3.1(react@18.3.1)
-
-  mobx@6.15.0: {}
-
   ms@2.1.3: {}
 
   nano-css@5.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
@@ -5410,19 +5367,6 @@ snapshots:
       stylis: 4.3.6
 
   nanoid@3.3.11: {}
-
-  nice-grpc-common@2.0.2:
-    dependencies:
-      ts-error: 1.0.6
-
-  nice-grpc-web@3.3.9(ws@8.18.3):
-    dependencies:
-      abort-controller-x: 0.4.3
-      isomorphic-ws: 5.0.0(ws@8.18.3)
-      js-base64: 3.7.8
-      nice-grpc-common: 2.0.2
-    transitivePeerDependencies:
-      - ws
 
   node-releases@2.0.27: {}
 
@@ -5543,6 +5487,14 @@ snapshots:
       jerrypick: 1.1.2
       react: 18.3.1
 
+  react-leaflet-cluster@2.1.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react-leaflet@4.2.1(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
+    dependencies:
+      leaflet: 1.9.4
+      leaflet.markercluster: 1.5.3(leaflet@1.9.4)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-leaflet: 4.2.1(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
   react-leaflet@4.2.1(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@react-leaflet/core': 2.1.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -5603,11 +5555,6 @@ snapshots:
     optionalDependencies:
       react-dom: 18.3.1(react@18.3.1)
 
-  react-simple-pull-to-refresh@1.3.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
   react-style-singleton@2.2.3(@types/react@18.3.27)(react@18.3.1):
     dependencies:
       get-nonce: 1.0.1
@@ -5650,7 +5597,7 @@ snapshots:
       '@types/katex': 0.16.7
       hast-util-from-html-isomorphic: 2.0.0
       hast-util-to-text: 4.0.2
-      katex: 0.16.25
+      katex: 0.16.27
       unist-util-visit-parents: 6.0.2
       vfile: 6.0.3
 
@@ -5868,8 +5815,6 @@ snapshots:
 
   ts-easing@0.2.0: {}
 
-  ts-error@1.0.6: {}
-
   tslib@2.8.1: {}
 
   tw-animate-css@1.4.0: {}
@@ -5944,10 +5889,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.27
 
-  use-sync-external-store@1.6.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
   uuid@11.1.0: {}
 
   vfile-location@5.0.3:
@@ -6000,8 +5941,6 @@ snapshots:
   vscode-uri@3.0.8: {}
 
   web-namespaces@2.0.1: {}
-
-  ws@8.18.3: {}
 
   yallist@3.1.1: {}
 
