@@ -1,14 +1,15 @@
 import dayjs from "dayjs";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { YearCalendar } from "@/components/ActivityCalendar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import i18n from "@/i18n";
 import { addMonths, formatMonth, getMonthFromDate, getYearFromDate, setYearAndMonth } from "@/lib/calendar-utils";
 import type { MonthNavigatorProps } from "@/types/statistics";
 
 export const MonthNavigator = memo(({ visibleMonth, onMonthChange, activityStats }: MonthNavigatorProps) => {
+  const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const { currentMonth, currentYear, currentMonthNum } = useMemo(
@@ -20,7 +21,10 @@ export const MonthNavigator = memo(({ visibleMonth, onMonthChange, activityStats
     [visibleMonth],
   );
 
-  const monthLabel = useMemo(() => currentMonth.toLocaleString(i18n.language, { year: "numeric", month: "long" }), [currentMonth]);
+  const monthLabel = useMemo(
+    () => currentMonth.toLocaleString(i18n.language, { year: "numeric", month: "long" }),
+    [currentMonth, i18n.language],
+  );
 
   const handlePrevMonth = useCallback(() => onMonthChange(addMonths(visibleMonth, -1)), [visibleMonth, onMonthChange]);
   const handleNextMonth = useCallback(() => onMonthChange(addMonths(visibleMonth, 1)), [visibleMonth, onMonthChange]);
@@ -50,7 +54,7 @@ export const MonthNavigator = memo(({ visibleMonth, onMonthChange, activityStats
           </button>
         </DialogTrigger>
         <DialogContent
-          className="p-0 border border-border/20 bg-background md:max-w-6xl w-[min(100vw-24px,1200px)] max-h-[85vh] overflow-auto rounded-xl shadow-xl"
+          className="p-0 border border-border/20 bg-background md:max-w-6xl w-[min(100vw-24px,1200px)] max-h-[85vh] overflow-y-auto rounded-xl shadow-xl"
           size="2xl"
           showCloseButton={false}
         >
