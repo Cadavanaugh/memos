@@ -18,10 +18,10 @@ func TestPublicMethodsArePublic(t *testing.T) {
 		// User Service
 		"/memos.api.v1.UserService/CreateUser",
 		"/memos.api.v1.UserService/GetUser",
+		"/memos.api.v1.UserService/BatchGetUsers",
 		"/memos.api.v1.UserService/GetUserAvatar",
 		"/memos.api.v1.UserService/GetUserStats",
 		"/memos.api.v1.UserService/ListAllUserStats",
-		"/memos.api.v1.UserService/SearchUsers",
 		// Identity Provider Service
 		"/memos.api.v1.IdentityProviderService/ListIdentityProviders",
 		// Memo Service
@@ -60,8 +60,6 @@ func TestProtectedMethodsRequireAuth(t *testing.T) {
 		"/memos.api.v1.ShortcutService/ListShortcuts",
 		"/memos.api.v1.ShortcutService/UpdateShortcut",
 		"/memos.api.v1.ShortcutService/DeleteShortcut",
-		// Activity Service
-		"/memos.api.v1.ActivityService/GetActivity",
 	}
 
 	for _, method := range protectedMethods {

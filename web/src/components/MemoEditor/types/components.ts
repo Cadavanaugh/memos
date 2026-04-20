@@ -1,8 +1,7 @@
-import type { LatLng } from "leaflet";
 import type { Location, Memo, Visibility } from "@/types/proto/api/v1/memo_service_pb";
 import type { EditorRefActions } from "../Editor";
 import type { Command } from "../Editor/commands";
-import type { LocationState } from "./insert-menu";
+import type { EditorState } from "../state";
 
 export interface MemoEditorProps {
   className?: string;
@@ -18,17 +17,28 @@ export interface MemoEditorProps {
 
 export interface EditorContentProps {
   placeholder?: string;
-  autoFocus?: boolean;
 }
 
 export interface EditorToolbarProps {
   onSave: () => void;
   onCancel?: () => void;
   memoName?: string;
+  onAudioRecorderClick: () => void;
 }
 
 export interface EditorMetadataProps {
   memoName?: string;
+}
+
+export interface AudioRecorderPanelProps {
+  audioRecorder: EditorState["audioRecorder"];
+  /** Active mic stream while recording; used for live waveform visualization. */
+  mediaStream: MediaStream | null;
+  onStop: () => void;
+  onCancel: () => void;
+  onTranscribe?: () => void;
+  canTranscribe?: boolean;
+  isTranscribing?: boolean;
 }
 
 export interface FocusModeOverlayProps {
@@ -42,34 +52,13 @@ export interface FocusModeExitButtonProps {
   title: string;
 }
 
-export interface LinkMemoDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  searchText: string;
-  onSearchChange: (text: string) => void;
-  filteredMemos: Memo[];
-  isFetching: boolean;
-  onSelectMemo: (memo: Memo) => void;
-}
-
-export interface LocationDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  state: LocationState;
-  locationInitialized: boolean;
-  onPositionChange: (position: LatLng) => void;
-  onUpdateCoordinate: (type: "lat" | "lng", value: string) => void;
-  onPlaceholderChange: (placeholder: string) => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}
-
 export interface InsertMenuProps {
   isUploading?: boolean;
   location?: Location;
   onLocationChange: (location?: Location) => void;
   onToggleFocusMode?: () => void;
   memoName?: string;
+  onAudioRecorderClick?: () => void;
 }
 
 export interface TagSuggestionsProps {

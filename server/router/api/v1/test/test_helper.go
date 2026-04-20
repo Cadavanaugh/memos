@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/usememos/memos/internal/markdown"
 	"github.com/usememos/memos/internal/profile"
-	"github.com/usememos/memos/plugin/markdown"
 	"github.com/usememos/memos/server/auth"
 	apiv1 "github.com/usememos/memos/server/router/api/v1"
 	"github.com/usememos/memos/store"
@@ -27,25 +27,29 @@ func NewTestService(t *testing.T) *TestService {
 	// Create a test store with SQLite
 	testStore := teststore.NewTestingStore(ctx, t)
 
-	// Create a test profile
+	// Create a test profile with a temp directory for file storage,
+	// so tests that create attachments don't leave artifacts in the source tree.
 	testProfile := &profile.Profile{
 		Demo:        true,
 		Version:     "test-1.0.0",
 		InstanceURL: "http://localhost:8080",
 		Driver:      "sqlite",
 		DSN:         ":memory:",
+		Data:        t.TempDir(),
 	}
 
 	// Create APIV1Service with nil grpcServer since we're testing direct calls
 	secret := "test-secret"
 	markdownService := markdown.NewService(
 		markdown.WithTagExtension(),
+		markdown.WithMentionExtension(),
 	)
 	service := &apiv1.APIV1Service{
 		Secret:          secret,
 		Profile:         testProfile,
 		Store:           testStore,
 		MarkdownService: markdownService,
+		SSEHub:          apiv1.NewSSEHub(),
 	}
 
 	return &TestService{

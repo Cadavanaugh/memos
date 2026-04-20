@@ -17,17 +17,9 @@ const MyAccountSection = () => {
   const accountDialog = useDialog();
   const passwordDialog = useDialog();
 
-  const handleEditAccount = () => {
-    accountDialog.open();
-  };
-
-  const handleChangePassword = () => {
-    passwordDialog.open();
-  };
-
   return (
-    <SettingSection>
-      <SettingGroup title={t("setting.account-section.title")}>
+    <SettingSection title={t("setting.my-account.label")}>
+      <SettingGroup title={t("setting.account.title")}>
         <div className="w-full flex flex-row justify-start items-center gap-3">
           <UserAvatar className="shrink-0 w-12 h-12" avatarUrl={user?.avatarUrl} />
           <div className="flex-1 min-w-0 flex flex-col justify-center items-start gap-1">
@@ -38,7 +30,7 @@ const MyAccountSection = () => {
             {user?.description && <p className="w-full text-sm text-muted-foreground truncate">{user?.description}</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={handleEditAccount}>
+            <Button variant="outline" size="sm" onClick={accountDialog.open}>
               <PenLineIcon className="w-4 h-4 mr-1.5" />
               {t("common.edit")}
             </Button>
@@ -49,7 +41,7 @@ const MyAccountSection = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleChangePassword}>{t("setting.account-section.change-password")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={passwordDialog.open}>{t("setting.account.change-password")}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

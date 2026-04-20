@@ -16,9 +16,9 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/usememos/memos/internal/idp"
+	"github.com/usememos/memos/internal/idp/oauth2"
 	"github.com/usememos/memos/internal/util"
-	"github.com/usememos/memos/plugin/idp"
-	"github.com/usememos/memos/plugin/idp/oauth2"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/server/auth"
@@ -48,7 +48,7 @@ func (s *APIV1Service) GetCurrentUser(ctx context.Context, _ *v1pb.GetCurrentUse
 	}
 
 	return &v1pb.GetCurrentUserResponse{
-		User: convertUserFromStore(user),
+		User: convertUserFromStore(user, user),
 	}, nil
 }
 
@@ -90,8 +90,12 @@ func (s *APIV1Service) SignIn(ctx context.Context, request *v1pb.SignInRequest) 
 		existingUser = user
 	} else if ssoCredentials := request.GetSsoCredentials(); ssoCredentials != nil {
 		// Authentication Method 2: SSO (OAuth2) authentication
+		idpUID, err := ExtractIdentityProviderUIDFromName(ssoCredentials.IdpName)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid identity provider name: %v", err)
+		}
 		identityProvider, err := s.Store.GetIdentityProvider(ctx, &store.FindIdentityProvider{
-			ID: &ssoCredentials.IdpId,
+			UID: &idpUID,
 		})
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get identity provider, error: %v", err)
@@ -183,7 +187,7 @@ func (s *APIV1Service) SignIn(ctx context.Context, request *v1pb.SignInRequest) 
 	}
 
 	return &v1pb.SignInResponse{
-		User:                 convertUserFromStore(existingUser),
+		User:                 convertUserFromStore(existingUser, existingUser),
 		AccessToken:          accessToken,
 		AccessTokenExpiresAt: timestamppb.New(accessExpiresAt),
 	}, nil

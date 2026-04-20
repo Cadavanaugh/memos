@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
   PNPM_VERSION: "10"
 
 jobs:
@@ -43,6 +43,10 @@ jobs:
       - name: Run lint
         working-directory: web
         run: pnpm lint
+
+      - name: Run unit tests
+        working-directory: web
+        run: pnpm test
 
   build:
     name: Build

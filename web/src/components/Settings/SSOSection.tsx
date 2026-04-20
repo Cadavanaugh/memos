@@ -5,6 +5,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { identityProviderServiceClient } from "@/connect";
+import { useDialog } from "@/hooks/useDialog";
 import { handleError } from "@/lib/error";
 import { IdentityProvider } from "@/types/proto/api/v1/idp_service_pb";
 import { useTranslate } from "@/utils/i18n";
@@ -16,20 +17,20 @@ import SettingTable from "./SettingTable";
 const SSOSection = () => {
   const t = useTranslate();
   const [identityProviderList, setIdentityProviderList] = useState<IdentityProvider[]>([]);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingIdentityProvider, setEditingIdentityProvider] = useState<IdentityProvider | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<IdentityProvider | undefined>(undefined);
-
-  useEffect(() => {
-    fetchIdentityProviderList();
-  }, []);
+  const idpDialog = useDialog();
 
   const fetchIdentityProviderList = async () => {
     const { identityProviders } = await identityProviderServiceClient.listIdentityProviders({});
     setIdentityProviderList(identityProviders);
   };
 
-  const handleDeleteIdentityProvider = async (identityProvider: IdentityProvider) => {
+  useEffect(() => {
+    fetchIdentityProviderList();
+  }, []);
+
+  const handleDeleteIdentityProvider = (identityProvider: IdentityProvider) => {
     setDeleteTarget(identityProvider);
   };
 
@@ -48,23 +49,22 @@ const SSOSection = () => {
 
   const handleCreateIdentityProvider = () => {
     setEditingIdentityProvider(undefined);
-    setIsCreateDialogOpen(true);
+    idpDialog.open();
   };
 
   const handleEditIdentityProvider = (identityProvider: IdentityProvider) => {
     setEditingIdentityProvider(identityProvider);
-    setIsCreateDialogOpen(true);
+    idpDialog.open();
   };
 
   const handleDialogSuccess = async () => {
     await fetchIdentityProviderList();
-    setIsCreateDialogOpen(false);
+    idpDialog.close();
     setEditingIdentityProvider(undefined);
   };
 
   const handleDialogOpenChange = (open: boolean) => {
-    setIsCreateDialogOpen(open);
-    // Clear editing state when dialog is closed
+    idpDialog.setOpen(open);
     if (!open) {
       setEditingIdentityProvider(undefined);
     }
@@ -74,7 +74,7 @@ const SSOSection = () => {
     <SettingSection
       title={
         <div className="flex items-center gap-2">
-          <span>{t("setting.sso-section.sso-list")}</span>
+          <span>{t("setting.sso.sso-list")}</span>
           <LearnMore url="https://usememos.com/docs/configuration/authentication" />
         </div>
       }
@@ -122,12 +122,12 @@ const SSOSection = () => {
           },
         ]}
         data={identityProviderList}
-        emptyMessage={t("setting.sso-section.no-sso-found")}
+        emptyMessage={t("setting.sso.no-sso-found")}
         getRowKey={(provider) => provider.name}
       />
 
       <CreateIdentityProviderDialog
-        open={isCreateDialogOpen}
+        open={idpDialog.isOpen}
         onOpenChange={handleDialogOpenChange}
         identityProvider={editingIdentityProvider}
         onSuccess={handleDialogSuccess}
@@ -136,7 +136,7 @@ const SSOSection = () => {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(undefined)}
-        title={deleteTarget ? t("setting.sso-section.confirm-delete", { name: deleteTarget.title }) : ""}
+        title={deleteTarget ? t("setting.sso.confirm-delete", { name: deleteTarget.title }) : ""}
         confirmLabel={t("common.delete")}
         cancelLabel={t("common.cancel")}
         onConfirm={confirmDeleteIdentityProvider}

@@ -1,6 +1,6 @@
 import type { Element } from "hast";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
@@ -10,18 +10,42 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { cn } from "@/lib/utils";
 import { useTranslate } from "@/utils/i18n";
+import { rehypeHeadingId } from "@/utils/rehype-plugins/rehype-heading-id";
 import { remarkDisableSetext } from "@/utils/remark-plugins/remark-disable-setext";
+import { extractMentionUsernames, remarkMention } from "@/utils/remark-plugins/remark-mention";
 import { remarkPreserveType } from "@/utils/remark-plugins/remark-preserve-type";
 import { remarkTag } from "@/utils/remark-plugins/remark-tag";
 import { CodeBlock } from "./CodeBlock";
-import { isTagNode, isTaskListItemNode } from "./ConditionalComponent";
+import { isMentionNode, isTagNode, isTaskListItemNode } from "./ConditionalComponent";
 import { COMPACT_MODE_CONFIG, SANITIZE_SCHEMA } from "./constants";
 import { useCompactLabel, useCompactMode } from "./hooks";
+import { Mention } from "./Mention";
+import { useResolvedMentionUsernames } from "./MentionResolutionContext";
 import { Blockquote, Heading, HorizontalRule, Image, InlineCode, Link, List, ListItem, Paragraph } from "./markdown";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "./Table";
 import { Tag } from "./Tag";
 import { TaskListItem } from "./TaskListItem";
+import { TrustedIframe } from "./TrustedIframe";
 import type { MemoContentProps } from "./types";
+
+function getMentionUsername(node: Element, children?: React.ReactNode): string {
+  const dataMention = node.properties?.["data-mention"];
+  if (typeof dataMention === "string" && dataMention !== "") {
+    return dataMention;
+  }
+
+  const camelDataMention = (node.properties as Record<string, unknown> | undefined)?.dataMention;
+  if (typeof camelDataMention === "string" && camelDataMention !== "") {
+    return camelDataMention;
+  }
+
+  const text = Array.isArray(children) ? children.join("") : children;
+  if (typeof text === "string" && text.startsWith("@")) {
+    return text.slice(1).toLowerCase();
+  }
+
+  return "";
+}
 
 const MemoContent = (props: MemoContentProps) => {
   const { className, contentClassName, content, onClick, onDoubleClick } = props;
@@ -31,6 +55,8 @@ const MemoContent = (props: MemoContentProps) => {
     mode: showCompactMode,
     toggle: toggleCompactMode,
   } = useCompactMode(Boolean(props.compact));
+  const mentionUsernames = useMemo(() => extractMentionUsernames(content), [content]);
+  const resolvedMentionUsernames = useResolvedMentionUsernames(mentionUsernames);
 
   const compactLabel = useCompactLabel(showCompactMode, t as (key: string) => string);
 
@@ -42,6 +68,9 @@ const MemoContent = (props: MemoContentProps) => {
         className={cn(
           "relative w-full max-w-full wrap-break-word text-base leading-6",
           "[&>*:last-child]:mb-0",
+          "[&_.katex-display]:max-w-full",
+          "[&_.katex-display]:overflow-x-auto",
+          "[&_.katex-display]:overflow-y-hidden",
           showCompactMode === "ALL" && "overflow-hidden",
           contentClassName,
         )}
@@ -50,34 +79,68 @@ const MemoContent = (props: MemoContentProps) => {
         onDoubleClick={onDoubleClick}
       >
         <ReactMarkdown
-          remarkPlugins={[remarkDisableSetext, remarkMath, remarkGfm, remarkBreaks, remarkTag, remarkPreserveType]}
-          rehypePlugins={[rehypeRaw, [rehypeSanitize, SANITIZE_SCHEMA], rehypeKatex]}
+          remarkPlugins={[remarkDisableSetext, remarkMath, remarkGfm, remarkBreaks, remarkMention, remarkTag, remarkPreserveType]}
+          rehypePlugins={[
+            rehypeRaw,
+            [rehypeSanitize, SANITIZE_SCHEMA],
+            rehypeHeadingId,
+            [rehypeKatex, { throwOnError: false, strict: false }],
+          ]}
           components={{
             // Child components consume from MemoViewContext directly
             input: ((inputProps: React.ComponentProps<"input"> & { node?: Element }) => {
-              if (inputProps.node && isTaskListItemNode(inputProps.node)) {
+              const { node, ...rest } = inputProps;
+              if (node && isTaskListItemNode(node)) {
                 return <TaskListItem {...inputProps} />;
               }
-              return <input {...inputProps} />;
+              return <input {...rest} />;
             }) as React.ComponentType<React.ComponentProps<"input">>,
             span: ((spanProps: React.ComponentProps<"span"> & { node?: Element }) => {
               const { node, ...rest } = spanProps;
+              if (node && isMentionNode(node)) {
+                const username = getMentionUsername(node, spanProps.children);
+                return <Mention {...spanProps} data-mention={username} resolved={resolvedMentionUsernames.has(username)} />;
+              }
               if (node && isTagNode(node)) {
                 return <Tag {...spanProps} />;
               }
               return <span {...rest} />;
             }) as React.ComponentType<React.ComponentProps<"span">>,
             // Headings
-            h1: ({ children }) => <Heading level={1}>{children}</Heading>,
-            h2: ({ children }) => <Heading level={2}>{children}</Heading>,
-            h3: ({ children }) => <Heading level={3}>{children}</Heading>,
-            h4: ({ children }) => <Heading level={4}>{children}</Heading>,
-            h5: ({ children }) => <Heading level={5}>{children}</Heading>,
-            h6: ({ children }) => <Heading level={6}>{children}</Heading>,
+            h1: ({ children, ...props }) => (
+              <Heading level={1} {...props}>
+                {children}
+              </Heading>
+            ),
+            h2: ({ children, ...props }) => (
+              <Heading level={2} {...props}>
+                {children}
+              </Heading>
+            ),
+            h3: ({ children, ...props }) => (
+              <Heading level={3} {...props}>
+                {children}
+              </Heading>
+            ),
+            h4: ({ children, ...props }) => (
+              <Heading level={4} {...props}>
+                {children}
+              </Heading>
+            ),
+            h5: ({ children, ...props }) => (
+              <Heading level={5} {...props}>
+                {children}
+              </Heading>
+            ),
+            h6: ({ children, ...props }) => (
+              <Heading level={6} {...props}>
+                {children}
+              </Heading>
+            ),
             // Block elements
-            p: ({ children }) => <Paragraph>{children}</Paragraph>,
-            blockquote: ({ children }) => <Blockquote>{children}</Blockquote>,
-            hr: () => <HorizontalRule />,
+            p: ({ children, ...props }) => <Paragraph {...props}>{children}</Paragraph>,
+            blockquote: ({ children, ...props }) => <Blockquote {...props}>{children}</Blockquote>,
+            hr: (props) => <HorizontalRule {...props} />,
             // Lists
             ul: ({ children, ...props }) => <List {...props}>{children}</List>,
             ol: ({ children, ...props }) => (
@@ -88,15 +151,16 @@ const MemoContent = (props: MemoContentProps) => {
             li: ({ children, ...props }) => <ListItem {...props}>{children}</ListItem>,
             // Inline elements
             a: ({ children, ...props }) => <Link {...props}>{children}</Link>,
-            code: ({ children }) => <InlineCode>{children}</InlineCode>,
+            code: ({ children, ...props }) => <InlineCode {...props}>{children}</InlineCode>,
+            iframe: TrustedIframe as React.ComponentType<React.ComponentProps<"iframe">>,
             img: ({ ...props }) => <Image {...props} />,
             // Code blocks
             pre: CodeBlock,
             // Tables
-            table: ({ children }) => <Table>{children}</Table>,
-            thead: ({ children }) => <TableHead>{children}</TableHead>,
-            tbody: ({ children }) => <TableBody>{children}</TableBody>,
-            tr: ({ children }) => <TableRow>{children}</TableRow>,
+            table: ({ children, ...props }) => <Table {...props}>{children}</Table>,
+            thead: ({ children, ...props }) => <TableHead {...props}>{children}</TableHead>,
+            tbody: ({ children, ...props }) => <TableBody {...props}>{children}</TableBody>,
+            tr: ({ children, ...props }) => <TableRow {...props}>{children}</TableRow>,
             th: ({ children, ...props }) => <TableHeaderCell {...props}>{children}</TableHeaderCell>,
             td: ({ children, ...props }) => <TableCell {...props}>{children}</TableCell>,
           }}

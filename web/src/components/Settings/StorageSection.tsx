@@ -55,78 +55,55 @@ const StorageSection = () => {
     return !isEqual(originalSetting, instanceStorageSetting);
   }, [instanceStorageSetting, originalSetting]);
 
-  const handleMaxUploadSizeChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
+  const handleMaxUploadSizeChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
     let num = parseInt(event.target.value);
     if (Number.isNaN(num)) {
       num = 0;
     }
-    const update = create(InstanceSetting_StorageSettingSchema, {
-      ...instanceStorageSetting,
-      uploadSizeLimitMb: BigInt(num),
-    });
-    setInstanceStorageSetting(update);
+    setInstanceStorageSetting(
+      create(InstanceSetting_StorageSettingSchema, {
+        ...instanceStorageSetting,
+        uploadSizeLimitMb: BigInt(num),
+      }),
+    );
   };
 
-  const handleFilepathTemplateChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    const update = create(InstanceSetting_StorageSettingSchema, {
-      ...instanceStorageSetting,
-      filepathTemplate: event.target.value,
-    });
-    setInstanceStorageSetting(update);
+  const handleFilepathTemplateChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInstanceStorageSetting(
+      create(InstanceSetting_StorageSettingSchema, {
+        ...instanceStorageSetting,
+        filepathTemplate: event.target.value,
+      }),
+    );
   };
 
-  const handlePartialS3ConfigChanged = async (s3Config: Partial<InstanceSetting_StorageSetting_S3Config>) => {
-    const existingS3Config = instanceStorageSetting.s3Config;
-    const s3ConfigInit = {
-      accessKeyId: existingS3Config?.accessKeyId ?? "",
-      accessKeySecret: existingS3Config?.accessKeySecret ?? "",
-      endpoint: existingS3Config?.endpoint ?? "",
-      region: existingS3Config?.region ?? "",
-      bucket: existingS3Config?.bucket ?? "",
-      usePathStyle: existingS3Config?.usePathStyle ?? false,
-      ...s3Config,
-    };
-    const update = create(InstanceSetting_StorageSettingSchema, {
-      storageType: instanceStorageSetting.storageType,
-      filepathTemplate: instanceStorageSetting.filepathTemplate,
-      uploadSizeLimitMb: instanceStorageSetting.uploadSizeLimitMb,
-      s3Config: create(InstanceSetting_StorageSetting_S3ConfigSchema, s3ConfigInit),
-    });
-    setInstanceStorageSetting(update);
+  const handleS3FieldChange = (field: keyof InstanceSetting_StorageSetting_S3Config, value: string | boolean) => {
+    const existing = instanceStorageSetting.s3Config;
+    setInstanceStorageSetting(
+      create(InstanceSetting_StorageSettingSchema, {
+        storageType: instanceStorageSetting.storageType,
+        filepathTemplate: instanceStorageSetting.filepathTemplate,
+        uploadSizeLimitMb: instanceStorageSetting.uploadSizeLimitMb,
+        s3Config: create(InstanceSetting_StorageSetting_S3ConfigSchema, {
+          accessKeyId: existing?.accessKeyId ?? "",
+          accessKeySecret: existing?.accessKeySecret ?? "",
+          endpoint: existing?.endpoint ?? "",
+          region: existing?.region ?? "",
+          bucket: existing?.bucket ?? "",
+          usePathStyle: existing?.usePathStyle ?? false,
+          [field]: value,
+        }),
+      }),
+    );
   };
 
-  const handleS3ConfigAccessKeyIdChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({ accessKeyId: event.target.value });
-  };
-
-  const handleS3ConfigAccessKeySecretChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({ accessKeySecret: event.target.value });
-  };
-
-  const handleS3ConfigEndpointChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({ endpoint: event.target.value });
-  };
-
-  const handleS3ConfigRegionChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({ region: event.target.value });
-  };
-
-  const handleS3ConfigBucketChanged = async (event: React.FocusEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({ bucket: event.target.value });
-  };
-
-  const handleS3ConfigUsePathStyleChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
-    handlePartialS3ConfigChanged({
-      usePathStyle: event.target.checked,
-    });
-  };
-
-  const handleStorageTypeChanged = async (storageType: InstanceSetting_StorageSetting_StorageType) => {
-    const update = create(InstanceSetting_StorageSettingSchema, {
-      ...instanceStorageSetting,
-      storageType: storageType,
-    });
-    setInstanceStorageSetting(update);
+  const handleStorageTypeChanged = (storageType: InstanceSetting_StorageSetting_StorageType) => {
+    setInstanceStorageSetting(
+      create(InstanceSetting_StorageSettingSchema, {
+        ...instanceStorageSetting,
+        storageType,
+      }),
+    );
   };
 
   const saveInstanceStorageSetting = async () => {
@@ -141,7 +118,7 @@ const StorageSection = () => {
         }),
       );
       await fetchSetting(InstanceSetting_Key.STORAGE);
-      toast.success("Updated");
+      toast.success(t("message.update-succeed"));
     } catch (error: unknown) {
       handleError(error, toast.error, {
         context: "Update storage settings",
@@ -150,8 +127,8 @@ const StorageSection = () => {
   };
 
   return (
-    <SettingSection>
-      <SettingGroup title={t("setting.storage-section.current-storage")}>
+    <SettingSection title={t("setting.storage.label")}>
+      <SettingGroup title={t("setting.storage.current-storage")}>
         <div className="w-full">
           <RadioGroup
             value={String(instanceStorageSetting.storageType)}
@@ -162,11 +139,11 @@ const StorageSection = () => {
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.DATABASE)} id="database" />
-              <Label htmlFor="database">{t("setting.storage-section.type-database")}</Label>
+              <Label htmlFor="database">{t("setting.storage.type-database")}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.LOCAL)} id="local" />
-              <Label htmlFor="local">{t("setting.storage-section.type-local")}</Label>
+              <Label htmlFor="local">{t("setting.storage.type-local")}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value={String(InstanceSetting_StorageSetting_StorageType.S3)} id="s3" />
@@ -175,7 +152,7 @@ const StorageSection = () => {
           </RadioGroup>
         </div>
 
-        <SettingRow label={t("setting.system-section.max-upload-size")} tooltip={t("setting.system-section.max-upload-size-hint")}>
+        <SettingRow label={t("setting.system.max-upload-size")} tooltip={t("setting.system.max-upload-size-hint")}>
           <Input
             className="w-24 font-mono"
             value={String(instanceStorageSetting.uploadSizeLimitMb)}
@@ -184,7 +161,7 @@ const StorageSection = () => {
         </SettingRow>
 
         {instanceStorageSetting.storageType !== InstanceSetting_StorageSetting_StorageType.DATABASE && (
-          <SettingRow label={t("setting.storage-section.filepath-template")}>
+          <SettingRow label={t("setting.storage.filepath-template")}>
             <Input
               className="w-64"
               value={instanceStorageSetting.filepathTemplate}
@@ -197,39 +174,51 @@ const StorageSection = () => {
 
       {instanceStorageSetting.storageType === InstanceSetting_StorageSetting_StorageType.S3 && (
         <SettingGroup title="S3 Configuration" showSeparator>
-          <SettingRow label="Access key id">
-            <Input className="w-64" value={instanceStorageSetting.s3Config?.accessKeyId} onChange={handleS3ConfigAccessKeyIdChanged} />
+          <SettingRow label={t("setting.storage.accesskey")}>
+            <Input
+              className="w-64"
+              value={instanceStorageSetting.s3Config?.accessKeyId}
+              onChange={(e) => handleS3FieldChange("accessKeyId", e.target.value)}
+            />
           </SettingRow>
 
-          <SettingRow label="Access key secret">
+          <SettingRow label={t("setting.storage.secretkey")}>
             <Input
               className="w-64"
               type="password"
               value={instanceStorageSetting.s3Config?.accessKeySecret}
-              onChange={handleS3ConfigAccessKeySecretChanged}
+              onChange={(e) => handleS3FieldChange("accessKeySecret", e.target.value)}
             />
           </SettingRow>
 
-          <SettingRow label="Endpoint">
-            <Input className="w-64" value={instanceStorageSetting.s3Config?.endpoint} onChange={handleS3ConfigEndpointChanged} />
+          <SettingRow label={t("setting.storage.endpoint")}>
+            <Input
+              className="w-64"
+              value={instanceStorageSetting.s3Config?.endpoint}
+              onChange={(e) => handleS3FieldChange("endpoint", e.target.value)}
+            />
           </SettingRow>
 
-          <SettingRow label="Region">
-            <Input className="w-64" value={instanceStorageSetting.s3Config?.region} onChange={handleS3ConfigRegionChanged} />
+          <SettingRow label={t("setting.storage.region")}>
+            <Input
+              className="w-64"
+              value={instanceStorageSetting.s3Config?.region}
+              onChange={(e) => handleS3FieldChange("region", e.target.value)}
+            />
           </SettingRow>
 
-          <SettingRow label="Bucket">
-            <Input className="w-64" value={instanceStorageSetting.s3Config?.bucket} onChange={handleS3ConfigBucketChanged} />
+          <SettingRow label={t("setting.storage.bucket")}>
+            <Input
+              className="w-64"
+              value={instanceStorageSetting.s3Config?.bucket}
+              onChange={(e) => handleS3FieldChange("bucket", e.target.value)}
+            />
           </SettingRow>
 
           <SettingRow label="Use Path Style">
             <Switch
               checked={instanceStorageSetting.s3Config?.usePathStyle}
-              onCheckedChange={(checked) =>
-                handleS3ConfigUsePathStyleChanged({ target: { checked } } as React.ChangeEvent<HTMLInputElement> & {
-                  target: { checked: boolean };
-                })
-              }
+              onCheckedChange={(checked) => handleS3FieldChange("usePathStyle", checked)}
             />
           </SettingRow>
         </SettingGroup>

@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { MemoRelation_Type } from "@/types/proto/api/v1/memo_service_pb";
 import type { User } from "@/types/proto/api/v1/user_service_pb";
+import type { PreviewMediaItem } from "@/utils/media-item";
 import { RELATIVE_TIME_THRESHOLD_MS } from "./constants";
 
 export interface MemoViewContextValue {
@@ -11,10 +12,14 @@ export interface MemoViewContextValue {
   creator: User | undefined;
   currentUser: User | undefined;
   parentPage: string;
+  cardWidth: number;
   isArchived: boolean;
   readonly: boolean;
-  showNSFWContent: boolean;
-  nsfw: boolean;
+  showBlurredContent: boolean;
+  blurred: boolean;
+  openEditor: () => void;
+  toggleBlurVisibility: () => void;
+  openPreview: (items: string | string[] | PreviewMediaItem[], index?: number) => void;
 }
 
 export const MemoViewContext = createContext<MemoViewContextValue | null>(null);
@@ -27,15 +32,15 @@ export const useMemoViewContext = (): MemoViewContextValue => {
   return context;
 };
 
+export const computeCommentAmount = (memo: Memo): number =>
+  memo.relations.filter((r) => r.type === MemoRelation_Type.COMMENT && r.relatedMemo?.name === memo.name).length;
+
 export const useMemoViewDerived = () => {
   const { memo, isArchived, readonly } = useMemoViewContext();
   const location = useLocation();
 
-  const isInMemoDetailPage = location.pathname.startsWith(`/${memo.name}`);
-
-  const commentAmount = memo.relations.filter(
-    (relation) => relation.type === MemoRelation_Type.COMMENT && relation.relatedMemo?.name === memo.name,
-  ).length;
+  const isInMemoDetailPage = location.pathname.startsWith(`/${memo.name}`) || location.pathname.startsWith("/memos/shares/");
+  const commentAmount = computeCommentAmount(memo);
 
   const displayTime = memo.displayTime ? timestampDate(memo.displayTime) : undefined;
   const relativeTimeFormat: "datetime" | "auto" =

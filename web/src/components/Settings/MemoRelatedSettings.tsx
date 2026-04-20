@@ -35,17 +35,18 @@ const MemoRelatedSettings = () => {
   };
 
   const upsertReaction = () => {
-    if (!editingReaction) {
+    const trimmed = editingReaction.trim();
+    if (!trimmed) {
       return;
     }
 
-    updatePartialSetting({ reactions: uniq([...memoRelatedSetting.reactions, editingReaction.trim()]) });
+    updatePartialSetting({ reactions: uniq([...memoRelatedSetting.reactions, trimmed]) });
     setEditingReaction("");
   };
 
   const handleUpdateSetting = async () => {
     if (memoRelatedSetting.reactions.length === 0) {
-      toast.error("Reactions must not be empty.");
+      toast.error(t("setting.memo.reactions-required"));
       return;
     }
 
@@ -69,40 +70,33 @@ const MemoRelatedSettings = () => {
   };
 
   return (
-    <SettingSection>
-      <SettingGroup title={t("setting.memo-related-settings.title")}>
-        <SettingRow label={t("setting.system-section.disable-public-memos")}>
-          <Switch
-            checked={memoRelatedSetting.disallowPublicVisibility}
-            onCheckedChange={(checked) => updatePartialSetting({ disallowPublicVisibility: checked })}
-          />
-        </SettingRow>
-
-        <SettingRow label={t("setting.system-section.display-with-updated-time")}>
+    <SettingSection title={t("setting.memo.label")}>
+      <SettingGroup title={t("common.basic")}>
+        <SettingRow label={t("setting.system.display-with-updated-time")}>
           <Switch
             checked={memoRelatedSetting.displayWithUpdateTime}
             onCheckedChange={(checked) => updatePartialSetting({ displayWithUpdateTime: checked })}
           />
         </SettingRow>
 
-        <SettingRow label={t("setting.system-section.enable-double-click-to-edit")}>
+        <SettingRow label={t("setting.system.enable-double-click-to-edit")}>
           <Switch
             checked={memoRelatedSetting.enableDoubleClickEdit}
             onCheckedChange={(checked) => updatePartialSetting({ enableDoubleClickEdit: checked })}
           />
         </SettingRow>
 
-        <SettingRow label={t("setting.memo-related-settings.content-length-limit")}>
+        <SettingRow label={t("setting.memo.content-length-limit")}>
           <Input
             className="w-24"
             type="number"
-            defaultValue={memoRelatedSetting.contentLengthLimit}
-            onBlur={(event) => updatePartialSetting({ contentLengthLimit: Number(event.target.value) })}
+            value={memoRelatedSetting.contentLengthLimit}
+            onChange={(event) => updatePartialSetting({ contentLengthLimit: Number(event.target.value) })}
           />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title={t("setting.memo-related-settings.reactions")} showSeparator>
+      <SettingGroup title={t("setting.memo.reactions")} showSeparator>
         <div className="w-full flex flex-row flex-wrap gap-2">
           {memoRelatedSetting.reactions.map((reactionType) => (
             <Badge key={reactionType} variant="outline" className="flex items-center gap-1.5 h-8 px-3">
@@ -120,7 +114,7 @@ const MemoRelatedSettings = () => {
               className="w-32 h-8"
               placeholder={t("common.input")}
               value={editingReaction}
-              onChange={(event) => setEditingReaction(event.target.value.trim())}
+              onChange={(event) => setEditingReaction(event.target.value)}
               onKeyDown={(e) => e.key === "Enter" && upsertReaction()}
             />
             <Button variant="ghost" size="sm" onClick={upsertReaction} className="h-8 w-8 p-0">

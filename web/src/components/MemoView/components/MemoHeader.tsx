@@ -1,8 +1,9 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { BookmarkIcon, MessageCircleMoreIcon } from "lucide-react";
-import { useState } from "react";
+import { BookmarkIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import useNavigateTo from "@/hooks/useNavigateTo";
 import i18n from "@/i18n";
 import { cn } from "@/lib/utils";
 import { Visibility } from "@/types/proto/api/v1/memo_service_pb";
@@ -13,15 +14,23 @@ import MemoActionMenu from "../../MemoActionMenu";
 import { ReactionSelector } from "../../MemoReactionListView";
 import UserAvatar from "../../UserAvatar";
 import VisibilityIcon from "../../VisibilityIcon";
+import { useMemoActions } from "../hooks";
 import { useMemoViewContext, useMemoViewDerived } from "../MemoViewContext";
 import type { MemoHeaderProps } from "../types";
 
-const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, showPinned, onEdit, onGotoDetail, onUnpin }) => {
+const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, showPinned }) => {
   const t = useTranslate();
   const [reactionSelectorOpen, setReactionSelectorOpen] = useState(false);
 
-  const { memo, creator, currentUser, parentPage, isArchived, readonly } = useMemoViewContext();
-  const { isInMemoDetailPage, commentAmount, relativeTimeFormat } = useMemoViewDerived();
+  const { memo, creator, currentUser, parentPage, isArchived, readonly, openEditor } = useMemoViewContext();
+  const { relativeTimeFormat } = useMemoViewDerived();
+
+  const navigateTo = useNavigateTo();
+  const handleGotoMemoDetailPage = useCallback(() => {
+    navigateTo(`/${memo.name}`, { state: { from: parentPage } });
+  }, [memo.name, parentPage, navigateTo]);
+
+  const { unpinMemo } = useMemoActions(memo);
 
   const displayTime = isArchived ? (
     (memo.displayTime ? timestampDate(memo.displayTime) : undefined)?.toLocaleString(i18n.language)
@@ -37,9 +46,9 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
     <div className="w-full flex flex-row justify-between items-center gap-2">
       <div className="w-auto max-w-[calc(100%-8rem)] grow flex flex-row justify-start items-center">
         {showCreator && creator ? (
-          <CreatorDisplay creator={creator} displayTime={displayTime} onGotoDetail={onGotoDetail} />
+          <CreatorDisplay creator={creator} displayTime={displayTime} onGotoDetail={handleGotoMemoDetailPage} />
         ) : (
-          <TimeDisplay displayTime={displayTime} onGotoDetail={onGotoDetail} />
+          <TimeDisplay displayTime={displayTime} onGotoDetail={handleGotoMemoDetailPage} />
         )}
       </div>
 
@@ -50,18 +59,6 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
             memo={memo}
             onOpenChange={setReactionSelectorOpen}
           />
-        )}
-
-        {!isInMemoDetailPage && commentAmount > 0 && (
-          <Link
-            className={cn("flex flex-row justify-start items-center rounded-md px-1 hover:opacity-80 gap-0.5")}
-            to={`/${memo.name}#comments`}
-            viewTransition
-            state={{ from: parentPage }}
-          >
-            <MessageCircleMoreIcon className="w-4 h-4 mx-auto text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">{commentAmount}</span>
-          </Link>
         )}
 
         {showVisibility && memo.visibility !== Visibility.PRIVATE && (
@@ -82,7 +79,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="cursor-pointer">
-                  <BookmarkIcon className="w-4 h-auto text-primary" onClick={onUnpin} />
+                  <BookmarkIcon className="w-4 h-auto text-primary" onClick={unpinMemo} />
                 </span>
               </TooltipTrigger>
               <TooltipContent>
@@ -92,7 +89,7 @@ const MemoHeader: React.FC<MemoHeaderProps> = ({ showCreator, showVisibility, sh
           </TooltipProvider>
         )}
 
-        <MemoActionMenu memo={memo} readonly={readonly} onEdit={onEdit} />
+        <MemoActionMenu memo={memo} readonly={readonly} onEdit={openEditor} />
       </div>
     </div>
   );

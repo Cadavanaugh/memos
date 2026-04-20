@@ -3,8 +3,13 @@ package v1
 import (
 	"context"
 	"fmt"
+	"math"
+	"regexp"
+	"strings"
 
+	"github.com/lithammer/shortuuid/v4"
 	"github.com/pkg/errors"
+	colorpb "google.golang.org/genproto/googleapis/type/color"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -46,6 +51,12 @@ func (s *APIV1Service) GetInstanceSetting(ctx context.Context, request *v1pb.Get
 		_, err = s.Store.GetInstanceMemoRelatedSetting(ctx)
 	case storepb.InstanceSettingKey_STORAGE:
 		_, err = s.Store.GetInstanceStorageSetting(ctx)
+	case storepb.InstanceSettingKey_TAGS:
+		_, err = s.Store.GetInstanceTagsSetting(ctx)
+	case storepb.InstanceSettingKey_NOTIFICATION:
+		_, err = s.Store.GetInstanceNotificationSetting(ctx)
+	case storepb.InstanceSettingKey_AI:
+		_, err = s.Store.GetInstanceAISetting(ctx)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported instance setting key: %v", instanceSettingKey)
 	}
@@ -63,8 +74,9 @@ func (s *APIV1Service) GetInstanceSetting(ctx context.Context, request *v1pb.Get
 		return nil, status.Errorf(codes.NotFound, "instance setting not found")
 	}
 
-	// For storage setting, only admin can get it.
-	if instanceSetting.Key == storepb.InstanceSettingKey_STORAGE {
+	// Storage and notification settings contain credentials; restrict to admins only.
+	if instanceSetting.Key == storepb.InstanceSettingKey_STORAGE ||
+		instanceSetting.Key == storepb.InstanceSettingKey_NOTIFICATION {
 		user, err := s.fetchCurrentUser(ctx)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
@@ -74,6 +86,15 @@ func (s *APIV1Service) GetInstanceSetting(ctx context.Context, request *v1pb.Get
 		}
 		if user.Role != store.RoleAdmin {
 			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	}
+	if instanceSetting.Key == storepb.InstanceSettingKey_AI {
+		user, err := s.fetchCurrentUser(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+		}
+		if user == nil {
+			return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
 		}
 	}
 
@@ -95,7 +116,37 @@ func (s *APIV1Service) UpdateInstanceSetting(ctx context.Context, request *v1pb.
 	// TODO: Apply update_mask if specified
 	_ = request.UpdateMask
 
+	if err := validateInstanceSetting(request.Setting); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid instance setting: %v", err)
+	}
+
 	updateSetting := convertInstanceSettingToStore(request.Setting)
+
+	// Preserve write-only credential fields when the caller sends an empty value.
+	// An empty string means "no change", not "clear the credential".
+	switch updateSetting.Key {
+	case storepb.InstanceSettingKey_NOTIFICATION:
+		if notif := updateSetting.GetNotificationSetting(); notif != nil && notif.Email != nil && notif.Email.SmtpPassword == "" {
+			existing, err := s.Store.GetInstanceNotificationSetting(ctx)
+			if err == nil && existing != nil && existing.Email != nil {
+				notif.Email.SmtpPassword = existing.Email.SmtpPassword
+			}
+		}
+	case storepb.InstanceSettingKey_STORAGE:
+		if storage := updateSetting.GetStorageSetting(); storage != nil && storage.S3Config != nil && storage.S3Config.AccessKeySecret == "" {
+			existing, err := s.Store.GetInstanceStorageSetting(ctx)
+			if err == nil && existing != nil && existing.S3Config != nil {
+				storage.S3Config.AccessKeySecret = existing.S3Config.AccessKeySecret
+			}
+		}
+	case storepb.InstanceSettingKey_AI:
+		if err := s.prepareInstanceAISettingForUpdate(ctx, updateSetting.GetAiSetting()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid AI setting: %v", err)
+		}
+	default:
+		// No credential preservation needed for other setting types.
+	}
+
 	instanceSetting, err := s.Store.UpsertInstanceSetting(ctx, updateSetting)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upsert instance setting: %v", err)
@@ -121,6 +172,20 @@ func convertInstanceSettingFromStore(setting *storepb.InstanceSetting) *v1pb.Ins
 		instanceSetting.Value = &v1pb.InstanceSetting_MemoRelatedSetting_{
 			MemoRelatedSetting: convertInstanceMemoRelatedSettingFromStore(setting.GetMemoRelatedSetting()),
 		}
+	case *storepb.InstanceSetting_TagsSetting:
+		instanceSetting.Value = &v1pb.InstanceSetting_TagsSetting_{
+			TagsSetting: convertInstanceTagsSettingFromStore(setting.GetTagsSetting()),
+		}
+	case *storepb.InstanceSetting_NotificationSetting:
+		instanceSetting.Value = &v1pb.InstanceSetting_NotificationSetting_{
+			NotificationSetting: convertInstanceNotificationSettingFromStore(setting.GetNotificationSetting()),
+		}
+	case *storepb.InstanceSetting_AiSetting:
+		instanceSetting.Value = &v1pb.InstanceSetting_AiSetting{
+			AiSetting: convertInstanceAISettingFromStore(setting.GetAiSetting()),
+		}
+	default:
+		// Leave Value unset for unsupported setting variants.
 	}
 	return instanceSetting
 }
@@ -145,6 +210,18 @@ func convertInstanceSettingToStore(setting *v1pb.InstanceSetting) *storepb.Insta
 	case storepb.InstanceSettingKey_MEMO_RELATED:
 		instanceSetting.Value = &storepb.InstanceSetting_MemoRelatedSetting{
 			MemoRelatedSetting: convertInstanceMemoRelatedSettingToStore(setting.GetMemoRelatedSetting()),
+		}
+	case storepb.InstanceSettingKey_TAGS:
+		instanceSetting.Value = &storepb.InstanceSetting_TagsSetting{
+			TagsSetting: convertInstanceTagsSettingToStore(setting.GetTagsSetting()),
+		}
+	case storepb.InstanceSettingKey_NOTIFICATION:
+		instanceSetting.Value = &storepb.InstanceSetting_NotificationSetting{
+			NotificationSetting: convertInstanceNotificationSettingToStore(setting.GetNotificationSetting()),
+		}
+	case storepb.InstanceSettingKey_AI:
+		instanceSetting.Value = &storepb.InstanceSetting_AiSetting{
+			AiSetting: convertInstanceAISettingToStore(setting.GetAiSetting()),
 		}
 	default:
 		// Keep the default GeneralSetting value
@@ -210,12 +287,12 @@ func convertInstanceStorageSettingFromStore(settingpb *storepb.InstanceStorageSe
 	}
 	if settingpb.S3Config != nil {
 		setting.S3Config = &v1pb.InstanceSetting_StorageSetting_S3Config{
-			AccessKeyId:     settingpb.S3Config.AccessKeyId,
-			AccessKeySecret: settingpb.S3Config.AccessKeySecret,
-			Endpoint:        settingpb.S3Config.Endpoint,
-			Region:          settingpb.S3Config.Region,
-			Bucket:          settingpb.S3Config.Bucket,
-			UsePathStyle:    settingpb.S3Config.UsePathStyle,
+			AccessKeyId: settingpb.S3Config.AccessKeyId,
+			// AccessKeySecret is write-only: never returned in responses.
+			Endpoint:     settingpb.S3Config.Endpoint,
+			Region:       settingpb.S3Config.Region,
+			Bucket:       settingpb.S3Config.Bucket,
+			UsePathStyle: settingpb.S3Config.UsePathStyle,
 		}
 	}
 	return setting
@@ -248,11 +325,10 @@ func convertInstanceMemoRelatedSettingFromStore(setting *storepb.InstanceMemoRel
 		return nil
 	}
 	return &v1pb.InstanceSetting_MemoRelatedSetting{
-		DisallowPublicVisibility: setting.DisallowPublicVisibility,
-		DisplayWithUpdateTime:    setting.DisplayWithUpdateTime,
-		ContentLengthLimit:       setting.ContentLengthLimit,
-		EnableDoubleClickEdit:    setting.EnableDoubleClickEdit,
-		Reactions:                setting.Reactions,
+		DisplayWithUpdateTime: setting.DisplayWithUpdateTime,
+		ContentLengthLimit:    setting.ContentLengthLimit,
+		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
+		Reactions:             setting.Reactions,
 	}
 }
 
@@ -261,12 +337,271 @@ func convertInstanceMemoRelatedSettingToStore(setting *v1pb.InstanceSetting_Memo
 		return nil
 	}
 	return &storepb.InstanceMemoRelatedSetting{
-		DisallowPublicVisibility: setting.DisallowPublicVisibility,
-		DisplayWithUpdateTime:    setting.DisplayWithUpdateTime,
-		ContentLengthLimit:       setting.ContentLengthLimit,
-		EnableDoubleClickEdit:    setting.EnableDoubleClickEdit,
-		Reactions:                setting.Reactions,
+		DisplayWithUpdateTime: setting.DisplayWithUpdateTime,
+		ContentLengthLimit:    setting.ContentLengthLimit,
+		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
+		Reactions:             setting.Reactions,
 	}
+}
+
+func convertInstanceTagsSettingFromStore(setting *storepb.InstanceTagsSetting) *v1pb.InstanceSetting_TagsSetting {
+	if setting == nil {
+		return nil
+	}
+	tags := make(map[string]*v1pb.InstanceSetting_TagMetadata, len(setting.Tags))
+	for tag, metadata := range setting.Tags {
+		tags[tag] = &v1pb.InstanceSetting_TagMetadata{
+			BackgroundColor: metadata.GetBackgroundColor(),
+			BlurContent:     metadata.GetBlurContent(),
+		}
+	}
+	return &v1pb.InstanceSetting_TagsSetting{
+		Tags: tags,
+	}
+}
+
+func convertInstanceTagsSettingToStore(setting *v1pb.InstanceSetting_TagsSetting) *storepb.InstanceTagsSetting {
+	if setting == nil {
+		return nil
+	}
+	tags := make(map[string]*storepb.InstanceTagMetadata, len(setting.Tags))
+	for tag, metadata := range setting.Tags {
+		tags[tag] = &storepb.InstanceTagMetadata{
+			BackgroundColor: metadata.GetBackgroundColor(),
+			BlurContent:     metadata.GetBlurContent(),
+		}
+	}
+	return &storepb.InstanceTagsSetting{
+		Tags: tags,
+	}
+}
+
+func convertInstanceNotificationSettingFromStore(setting *storepb.InstanceNotificationSetting) *v1pb.InstanceSetting_NotificationSetting {
+	if setting == nil {
+		return nil
+	}
+
+	notificationSetting := &v1pb.InstanceSetting_NotificationSetting{}
+	if setting.Email != nil {
+		notificationSetting.Email = &v1pb.InstanceSetting_NotificationSetting_EmailSetting{
+			Enabled:      setting.Email.Enabled,
+			SmtpHost:     setting.Email.SmtpHost,
+			SmtpPort:     setting.Email.SmtpPort,
+			SmtpUsername: setting.Email.SmtpUsername,
+			// SmtpPassword is write-only: never returned in responses.
+			FromEmail: setting.Email.FromEmail,
+			FromName:  setting.Email.FromName,
+			ReplyTo:   setting.Email.ReplyTo,
+			UseTls:    setting.Email.UseTls,
+			UseSsl:    setting.Email.UseSsl,
+		}
+	}
+	return notificationSetting
+}
+
+func convertInstanceNotificationSettingToStore(setting *v1pb.InstanceSetting_NotificationSetting) *storepb.InstanceNotificationSetting {
+	if setting == nil {
+		return nil
+	}
+
+	notificationSetting := &storepb.InstanceNotificationSetting{}
+	if setting.Email != nil {
+		notificationSetting.Email = &storepb.InstanceNotificationSetting_EmailSetting{
+			Enabled:      setting.Email.Enabled,
+			SmtpHost:     setting.Email.SmtpHost,
+			SmtpPort:     setting.Email.SmtpPort,
+			SmtpUsername: setting.Email.SmtpUsername,
+			SmtpPassword: setting.Email.SmtpPassword,
+			FromEmail:    setting.Email.FromEmail,
+			FromName:     setting.Email.FromName,
+			ReplyTo:      setting.Email.ReplyTo,
+			UseTls:       setting.Email.UseTls,
+			UseSsl:       setting.Email.UseSsl,
+		}
+	}
+	return notificationSetting
+}
+
+func convertInstanceAISettingFromStore(setting *storepb.InstanceAISetting) *v1pb.InstanceSetting_AISetting {
+	if setting == nil {
+		return nil
+	}
+
+	aiSetting := &v1pb.InstanceSetting_AISetting{
+		Providers: make([]*v1pb.InstanceSetting_AIProviderConfig, 0, len(setting.Providers)),
+	}
+	for _, provider := range setting.Providers {
+		if provider == nil {
+			continue
+		}
+		apiKey := provider.GetApiKey()
+		aiSetting.Providers = append(aiSetting.Providers, &v1pb.InstanceSetting_AIProviderConfig{
+			Id:         provider.GetId(),
+			Title:      provider.GetTitle(),
+			Type:       v1pb.InstanceSetting_AIProviderType(provider.GetType()),
+			Endpoint:   provider.GetEndpoint(),
+			ApiKeySet:  apiKey != "",
+			ApiKeyHint: maskAPIKey(apiKey),
+		})
+	}
+	return aiSetting
+}
+
+func convertInstanceAISettingToStore(setting *v1pb.InstanceSetting_AISetting) *storepb.InstanceAISetting {
+	if setting == nil {
+		return nil
+	}
+
+	aiSetting := &storepb.InstanceAISetting{
+		Providers: make([]*storepb.AIProviderConfig, 0, len(setting.Providers)),
+	}
+	for _, provider := range setting.Providers {
+		if provider == nil {
+			continue
+		}
+		aiSetting.Providers = append(aiSetting.Providers, &storepb.AIProviderConfig{
+			Id:       provider.GetId(),
+			Title:    provider.GetTitle(),
+			Type:     storepb.AIProviderType(provider.GetType()),
+			Endpoint: provider.GetEndpoint(),
+			ApiKey:   provider.GetApiKey(),
+		})
+	}
+	return aiSetting
+}
+
+func validateInstanceSetting(setting *v1pb.InstanceSetting) error {
+	key, err := ExtractInstanceSettingKeyFromName(setting.Name)
+	if err != nil {
+		return err
+	}
+	if key != storepb.InstanceSettingKey_TAGS.String() {
+		return nil
+	}
+	return validateInstanceTagsSetting(setting.GetTagsSetting())
+}
+
+func (s *APIV1Service) prepareInstanceAISettingForUpdate(ctx context.Context, setting *storepb.InstanceAISetting) error {
+	if setting == nil {
+		return errors.New("AI setting is required")
+	}
+
+	existing, err := s.Store.GetInstanceAISetting(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get existing AI setting")
+	}
+	existingProviders := map[string]*storepb.AIProviderConfig{}
+	if existing != nil {
+		for _, provider := range existing.Providers {
+			if provider != nil && provider.Id != "" {
+				existingProviders[provider.Id] = provider
+			}
+		}
+	}
+
+	seenIDs := map[string]bool{}
+	for _, provider := range setting.Providers {
+		if provider == nil {
+			return errors.New("provider cannot be nil")
+		}
+
+		provider.Id = strings.TrimSpace(provider.Id)
+		if provider.Id == "" {
+			provider.Id = shortuuid.New()
+		}
+		if seenIDs[provider.Id] {
+			return errors.Errorf("duplicate provider ID %q", provider.Id)
+		}
+		seenIDs[provider.Id] = true
+
+		provider.Title = strings.TrimSpace(provider.Title)
+		if provider.Title == "" {
+			return errors.New("provider title is required")
+		}
+		if provider.Type != storepb.AIProviderType_OPENAI && provider.Type != storepb.AIProviderType_GEMINI {
+			return errors.Errorf("provider %q has unsupported type", provider.Id)
+		}
+
+		provider.Endpoint = strings.TrimSpace(provider.Endpoint)
+		if provider.Type == storepb.AIProviderType_OPENAI && provider.Endpoint == "" {
+			provider.Endpoint = "https://api.openai.com/v1"
+		}
+		if provider.Type == storepb.AIProviderType_GEMINI && provider.Endpoint == "" {
+			provider.Endpoint = "https://generativelanguage.googleapis.com/v1beta"
+		}
+
+		if provider.ApiKey == "" {
+			if existingProvider, ok := existingProviders[provider.Id]; ok {
+				provider.ApiKey = existingProvider.ApiKey
+			}
+		}
+		if provider.ApiKey == "" {
+			return errors.Errorf("provider %q API key is required", provider.Id)
+		}
+	}
+	return nil
+}
+
+func maskAPIKey(apiKey string) string {
+	if apiKey == "" {
+		return ""
+	}
+	if len(apiKey) <= 8 {
+		return "..."
+	}
+	prefixLength := min(4, len(apiKey))
+	return apiKey[:prefixLength] + "..." + apiKey[len(apiKey)-4:]
+}
+
+func validateInstanceTagsSetting(setting *v1pb.InstanceSetting_TagsSetting) error {
+	if setting == nil {
+		return errors.New("tags setting is required")
+	}
+	for tag, metadata := range setting.Tags {
+		if strings.TrimSpace(tag) == "" {
+			return errors.New("tag key cannot be empty")
+		}
+		if _, err := regexp.Compile(tag); err != nil {
+			return errors.Errorf("tag key %q is not a valid regex pattern: %v", tag, err)
+		}
+		if metadata == nil {
+			return errors.Errorf("tag metadata is required for %q", tag)
+		}
+		if metadata.GetBackgroundColor() != nil {
+			if err := validateInstanceColor(metadata.GetBackgroundColor()); err != nil {
+				return errors.Wrapf(err, "background_color for %q", tag)
+			}
+		}
+	}
+	return nil
+}
+
+func validateInstanceColor(color *colorpb.Color) error {
+	if err := validateInstanceColorComponent("red", color.GetRed()); err != nil {
+		return err
+	}
+	if err := validateInstanceColorComponent("green", color.GetGreen()); err != nil {
+		return err
+	}
+	if err := validateInstanceColorComponent("blue", color.GetBlue()); err != nil {
+		return err
+	}
+	if alpha := color.GetAlpha(); alpha != nil {
+		if err := validateInstanceColorComponent("alpha", alpha.GetValue()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateInstanceColorComponent(name string, value float32) error {
+	if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+		return errors.Errorf("%s must be a finite number", name)
+	}
+	if value < 0 || value > 1 {
+		return errors.Errorf("%s must be between 0 and 1", name)
+	}
+	return nil
 }
 
 func (s *APIV1Service) GetInstanceAdmin(ctx context.Context) (*v1pb.User, error) {
@@ -281,5 +616,6 @@ func (s *APIV1Service) GetInstanceAdmin(ctx context.Context) (*v1pb.User, error)
 		return nil, nil
 	}
 
-	return convertUserFromStore(user), nil
+	currentUser, _ := s.fetchCurrentUser(ctx)
+	return convertUserFromStore(user, currentUser), nil
 }
