@@ -6,63 +6,25 @@ info:
     title: ""
     version: 0.0.1
 paths:
-    /api/v1/activities:
-        get:
+    /api/v1/ai:transcribe:
+        post:
             tags:
-                - ActivityService
-            description: ListActivities returns a list of activities.
-            operationId: ActivityService_ListActivities
-            parameters:
-                - name: pageSize
-                  in: query
-                  description: |-
-                    The maximum number of activities to return.
-                     The service may return fewer than this value.
-                     If unspecified, at most 100 activities will be returned.
-                     The maximum value is 1000; values above 1000 will be coerced to 1000.
-                  schema:
-                    type: integer
-                    format: int32
-                - name: pageToken
-                  in: query
-                  description: |-
-                    A page token, received from a previous `ListActivities` call.
-                     Provide this to retrieve the subsequent page.
-                  schema:
-                    type: string
+                - AIService
+            description: Transcribe transcribes an audio file using an instance AI provider.
+            operationId: AIService_Transcribe
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TranscribeRequest'
+                required: true
             responses:
                 "200":
                     description: OK
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ListActivitiesResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /api/v1/activities/{activity}:
-        get:
-            tags:
-                - ActivityService
-            description: GetActivity returns the activity with the given id.
-            operationId: ActivityService_GetActivity
-            parameters:
-                - name: activity
-                  in: path
-                  description: The activity id.
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Activity'
+                                $ref: '#/components/schemas/TranscribeResponse'
                 default:
                     description: Default error response
                     content:
@@ -158,7 +120,7 @@ paths:
         get:
             tags:
                 - AttachmentService
-            description: GetAttachment returns a attachment by name.
+            description: GetAttachment returns an attachment by name.
             operationId: AttachmentService_GetAttachment
             parameters:
                 - name: attachment
@@ -183,7 +145,7 @@ paths:
         delete:
             tags:
                 - AttachmentService
-            description: DeleteAttachment deletes a attachment by name.
+            description: DeleteAttachment deletes an attachment by name.
             operationId: AttachmentService_DeleteAttachment
             parameters:
                 - name: attachment
@@ -205,7 +167,7 @@ paths:
         patch:
             tags:
                 - AttachmentService
-            description: UpdateAttachment updates a attachment.
+            description: UpdateAttachment updates an attachment.
             operationId: AttachmentService_UpdateAttachment
             parameters:
                 - name: attachment
@@ -233,6 +195,28 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Attachment'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/attachments:batchDelete:
+        post:
+            tags:
+                - AttachmentService
+            description: BatchDeleteAttachments deletes multiple attachments in one request.
+            operationId: AttachmentService_BatchDeleteAttachments
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchDeleteAttachmentsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -595,10 +579,10 @@ paths:
                   in: query
                   description: |-
                     Optional. The order to sort results by.
-                     Default to "display_time desc".
+                     Default to "create_time desc".
                      Supports comma-separated list of fields following AIP-132.
-                     Example: "pinned desc, display_time desc" or "create_time asc"
-                     Supported fields: pinned, display_time, create_time, update_time, name
+                     Example: "pinned desc, create_time desc" or "update_time asc"
+                     Supported fields: pinned, create_time, update_time, name
                   schema:
                     type: string
                 - name: filter
@@ -653,6 +637,56 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Memo'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/memos/-/linkMetadata:
+        get:
+            tags:
+                - MemoService
+            description: GetLinkMetadata gets metadata for a link.
+            operationId: MemoService_GetLinkMetadata
+            parameters:
+                - name: url
+                  in: query
+                  description: Required. The link URL.
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LinkMetadata'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/memos/-/linkMetadata:batchGet:
+        post:
+            tags:
+                - MemoService
+            description: BatchGetLinkMetadata gets metadata for links.
+            operationId: MemoService_BatchGetLinkMetadata
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchGetLinkMetadataRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchGetLinkMetadataResponse'
                 default:
                     description: Default error response
                     content:
@@ -1054,6 +1088,120 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /api/v1/memos/{memo}/shares:
+        get:
+            tags:
+                - MemoService
+            description: ListMemoShares lists all share links for a memo. Requires authentication as the memo creator.
+            operationId: MemoService_ListMemoShares
+            parameters:
+                - name: memo
+                  in: path
+                  description: The memo id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMemoSharesResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        post:
+            tags:
+                - MemoService
+            description: CreateMemoShare creates a share link for a memo. Requires authentication as the memo creator.
+            operationId: MemoService_CreateMemoShare
+            parameters:
+                - name: memo
+                  in: path
+                  description: The memo id.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/MemoShare'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MemoShare'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/memos/{memo}/shares/{share}:
+        delete:
+            tags:
+                - MemoService
+            description: DeleteMemoShare revokes a share link. Requires authentication as the memo creator.
+            operationId: MemoService_DeleteMemoShare
+            parameters:
+                - name: memo
+                  in: path
+                  description: The memo id.
+                  required: true
+                  schema:
+                    type: string
+                - name: share
+                  in: path
+                  description: The share id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/shares/{shareId}:
+        get:
+            tags:
+                - MemoService
+            description: |-
+                GetMemoByShare resolves a share token to its memo. No authentication required.
+                 Returns NOT_FOUND if the token is invalid or expired.
+            operationId: MemoService_GetMemoByShare
+            parameters:
+                - name: shareId
+                  in: path
+                  description: Required. The share token extracted from the share URL (/s/{share_id}).
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Memo'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /api/v1/users:
         get:
             tags:
@@ -1155,10 +1303,8 @@ paths:
             tags:
                 - UserService
             description: |-
-                GetUser gets a user by ID or username.
-                 Supports both numeric IDs and username strings:
-                   - users/{id}       (e.g., users/101)
-                   - users/{username} (e.g., users/steven)
+                GetUser gets a user by username.
+                 Format: users/{username} (e.g., users/steven)
             operationId: UserService_GetUser
             parameters:
                 - name: user
@@ -1251,6 +1397,123 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/User'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/users/{user}/linkedIdentities:
+        get:
+            tags:
+                - UserService
+            description: ListLinkedIdentities returns a list of linked SSO identities for a user.
+            operationId: UserService_ListLinkedIdentities
+            parameters:
+                - name: user
+                  in: path
+                  description: The user id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListLinkedIdentitiesResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        post:
+            tags:
+                - UserService
+            description: CreateLinkedIdentity links an SSO identity to the authenticated user.
+            operationId: UserService_CreateLinkedIdentity
+            parameters:
+                - name: user
+                  in: path
+                  description: The user id.
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateLinkedIdentityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LinkedIdentity'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /api/v1/users/{user}/linkedIdentities/{linkedIdentity}:
+        get:
+            tags:
+                - UserService
+            description: GetLinkedIdentity gets a linked SSO identity for a user.
+            operationId: UserService_GetLinkedIdentity
+            parameters:
+                - name: user
+                  in: path
+                  description: The user id.
+                  required: true
+                  schema:
+                    type: string
+                - name: linkedIdentity
+                  in: path
+                  description: The linkedIdentity id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LinkedIdentity'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        delete:
+            tags:
+                - UserService
+            description: DeleteLinkedIdentity unlinks an SSO identity from a user.
+            operationId: UserService_DeleteLinkedIdentity
+            parameters:
+                - name: user
+                  in: path
+                  description: The user id.
+                  required: true
+                  schema:
+                    type: string
+                - name: linkedIdentity
+                  in: path
+                  description: The linkedIdentity id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -1906,6 +2169,31 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /api/v1/users:batchGet:
+        post:
+            tags:
+                - UserService
+            description: BatchGetUsers returns active users by usernames.
+            operationId: UserService_BatchGetUsers
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/BatchGetUsersRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchGetUsersResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /api/v1/users:stats:
         get:
             tags:
@@ -1927,70 +2215,6 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
-        Activity:
-            type: object
-            properties:
-                name:
-                    readOnly: true
-                    type: string
-                    description: |-
-                        The name of the activity.
-                         Format: activities/{id}
-                creator:
-                    readOnly: true
-                    type: string
-                    description: |-
-                        The name of the creator.
-                         Format: users/{user}
-                type:
-                    readOnly: true
-                    enum:
-                        - TYPE_UNSPECIFIED
-                        - MEMO_COMMENT
-                    type: string
-                    description: The type of the activity.
-                    format: enum
-                level:
-                    readOnly: true
-                    enum:
-                        - LEVEL_UNSPECIFIED
-                        - INFO
-                        - WARN
-                        - ERROR
-                    type: string
-                    description: The level of the activity.
-                    format: enum
-                createTime:
-                    readOnly: true
-                    type: string
-                    description: The create time of the activity.
-                    format: date-time
-                payload:
-                    readOnly: true
-                    allOf:
-                        - $ref: '#/components/schemas/ActivityPayload'
-                    description: The payload of the activity.
-        ActivityMemoCommentPayload:
-            type: object
-            properties:
-                memo:
-                    type: string
-                    description: |-
-                        The memo name of comment.
-                         Format: memos/{memo}
-                relatedMemo:
-                    type: string
-                    description: |-
-                        The name of related memo.
-                         Format: memos/{memo}
-            description: ActivityMemoCommentPayload represents the payload of a memo comment activity.
-        ActivityPayload:
-            type: object
-            properties:
-                memoComment:
-                    allOf:
-                        - $ref: '#/components/schemas/ActivityMemoCommentPayload'
-                    description: Memo comment activity payload.
         Attachment:
             required:
                 - filename
@@ -2030,6 +2254,233 @@ components:
                     description: |-
                         Optional. The related memo. Refer to `Memo.name`.
                          Format: memos/{memo}
+                motionMedia:
+                    allOf:
+                        - $ref: '#/components/schemas/MotionMedia'
+                    description: Optional. Motion media metadata.
+        BatchDeleteAttachmentsRequest:
+            required:
+                - names
+            type: object
+            properties:
+                names:
+                    type: array
+                    items:
+                        type: string
+        BatchGetLinkMetadataRequest:
+            required:
+                - urls
+            type: object
+            properties:
+                urls:
+                    type: array
+                    items:
+                        type: string
+                    description: Required. The link URLs.
+        BatchGetLinkMetadataResponse:
+            type: object
+            properties:
+                linkMetadata:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/LinkMetadata'
+                    description: The link metadata list, in the same order as the input URLs.
+        BatchGetUsersRequest:
+            type: object
+            properties:
+                usernames:
+                    type: array
+                    items:
+                        type: string
+        BatchGetUsersResponse:
+            type: object
+            properties:
+                users:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/User'
+        Color:
+            type: object
+            properties:
+                red:
+                    type: number
+                    description: The amount of red in the color as a value in the interval [0, 1].
+                    format: float
+                green:
+                    type: number
+                    description: The amount of green in the color as a value in the interval [0, 1].
+                    format: float
+                blue:
+                    type: number
+                    description: The amount of blue in the color as a value in the interval [0, 1].
+                    format: float
+                alpha:
+                    type: number
+                    description: |-
+                        The fraction of this color that should be applied to the pixel. That is,
+                         the final pixel color is defined by the equation:
+
+                           `pixel color = alpha * (this color) + (1.0 - alpha) * (background color)`
+
+                         This means that a value of 1.0 corresponds to a solid color, whereas
+                         a value of 0.0 corresponds to a completely transparent color. This
+                         uses a wrapper message rather than a simple float scalar so that it is
+                         possible to distinguish between a default value and the value being unset.
+                         If omitted, this color object is rendered as a solid color
+                         (as if the alpha value had been explicitly given a value of 1.0).
+                    format: float
+            description: |-
+                Represents a color in the RGBA color space. This representation is designed
+                 for simplicity of conversion to/from color representations in various
+                 languages over compactness. For example, the fields of this representation
+                 can be trivially provided to the constructor of `java.awt.Color` in Java; it
+                 can also be trivially provided to UIColor's `+colorWithRed:green:blue:alpha`
+                 method in iOS; and, with just a little work, it can be easily formatted into
+                 a CSS `rgba()` string in JavaScript.
+
+                 This reference page doesn't carry information about the absolute color
+                 space
+                 that should be used to interpret the RGB value (e.g. sRGB, Adobe RGB,
+                 DCI-P3, BT.2020, etc.). By default, applications should assume the sRGB color
+                 space.
+
+                 When color equality needs to be decided, implementations, unless
+                 documented otherwise, treat two colors as equal if all their red,
+                 green, blue, and alpha values each differ by at most 1e-5.
+
+                 Example (Java):
+
+                      import com.google.type.Color;
+
+                      // ...
+                      public static java.awt.Color fromProto(Color protocolor) {
+                        float alpha = protocolor.hasAlpha()
+                            ? protocolor.getAlpha().getValue()
+                            : 1.0;
+
+                        return new java.awt.Color(
+                            protocolor.getRed(),
+                            protocolor.getGreen(),
+                            protocolor.getBlue(),
+                            alpha);
+                      }
+
+                      public static Color toProto(java.awt.Color color) {
+                        float red = (float) color.getRed();
+                        float green = (float) color.getGreen();
+                        float blue = (float) color.getBlue();
+                        float denominator = 255.0;
+                        Color.Builder resultBuilder =
+                            Color
+                                .newBuilder()
+                                .setRed(red / denominator)
+                                .setGreen(green / denominator)
+                                .setBlue(blue / denominator);
+                        int alpha = color.getAlpha();
+                        if (alpha != 255) {
+                          result.setAlpha(
+                              FloatValue
+                                  .newBuilder()
+                                  .setValue(((float) alpha) / denominator)
+                                  .build());
+                        }
+                        return resultBuilder.build();
+                      }
+                      // ...
+
+                 Example (iOS / Obj-C):
+
+                      // ...
+                      static UIColor* fromProto(Color* protocolor) {
+                         float red = [protocolor red];
+                         float green = [protocolor green];
+                         float blue = [protocolor blue];
+                         FloatValue* alpha_wrapper = [protocolor alpha];
+                         float alpha = 1.0;
+                         if (alpha_wrapper != nil) {
+                           alpha = [alpha_wrapper value];
+                         }
+                         return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];
+                      }
+
+                      static Color* toProto(UIColor* color) {
+                          CGFloat red, green, blue, alpha;
+                          if (![color getRed:&red green:&green blue:&blue alpha:&alpha]) {
+                            return nil;
+                          }
+                          Color* result = [[Color alloc] init];
+                          [result setRed:red];
+                          [result setGreen:green];
+                          [result setBlue:blue];
+                          if (alpha <= 0.9999) {
+                            [result setAlpha:floatWrapperWithValue(alpha)];
+                          }
+                          [result autorelease];
+                          return result;
+                     }
+                     // ...
+
+                  Example (JavaScript):
+
+                     // ...
+
+                     var protoToCssColor = function(rgb_color) {
+                        var redFrac = rgb_color.red || 0.0;
+                        var greenFrac = rgb_color.green || 0.0;
+                        var blueFrac = rgb_color.blue || 0.0;
+                        var red = Math.floor(redFrac * 255);
+                        var green = Math.floor(greenFrac * 255);
+                        var blue = Math.floor(blueFrac * 255);
+
+                        if (!('alpha' in rgb_color)) {
+                           return rgbToCssColor(red, green, blue);
+                        }
+
+                        var alphaFrac = rgb_color.alpha.value || 0.0;
+                        var rgbParams = [red, green, blue].join(',');
+                        return ['rgba(', rgbParams, ',', alphaFrac, ')'].join('');
+                     };
+
+                     var rgbToCssColor = function(red, green, blue) {
+                       var rgbNumber = new Number((red << 16) | (green << 8) | blue);
+                       var hexString = rgbNumber.toString(16);
+                       var missingZeros = 6 - hexString.length;
+                       var resultBuilder = ['#'];
+                       for (var i = 0; i < missingZeros; i++) {
+                          resultBuilder.push('0');
+                       }
+                       resultBuilder.push(hexString);
+                       return resultBuilder.join('');
+                     };
+
+                     // ...
+        CreateLinkedIdentityRequest:
+            required:
+                - parent
+                - idpName
+                - code
+                - redirectUri
+            type: object
+            properties:
+                parent:
+                    type: string
+                    description: |-
+                        Required. The parent user who owns the linked identity.
+                         Format: users/{user}
+                idpName:
+                    type: string
+                    description: |-
+                        Required. The identity provider to link.
+                         Format: identity-providers/{uid}
+                code:
+                    type: string
+                    description: Required. The authorization code from the identity provider.
+                redirectUri:
+                    type: string
+                    description: Required. The redirect URI used in the OAuth flow.
+                codeVerifier:
+                    type: string
+                    description: Optional. The PKCE code verifier used in the OAuth flow.
         CreatePersonalAccessTokenRequest:
             required:
                 - parent
@@ -2147,6 +2598,9 @@ components:
                     description: |-
                         The first administrator who set up this instance.
                          When null, instance requires initial setup (creating the first admin account).
+                commit:
+                    type: string
+                    description: Commit is the current build commit of instance.
             description: Instance profile message containing basic instance information.
         InstanceSetting:
             type: object
@@ -2162,7 +2616,51 @@ components:
                     $ref: '#/components/schemas/InstanceSetting_StorageSetting'
                 memoRelatedSetting:
                     $ref: '#/components/schemas/InstanceSetting_MemoRelatedSetting'
+                tagsSetting:
+                    $ref: '#/components/schemas/InstanceSetting_TagsSetting'
+                notificationSetting:
+                    $ref: '#/components/schemas/InstanceSetting_NotificationSetting'
+                aiSetting:
+                    $ref: '#/components/schemas/InstanceSetting_AISetting'
             description: An instance setting resource.
+        InstanceSetting_AIProviderConfig:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                type:
+                    enum:
+                        - AI_PROVIDER_TYPE_UNSPECIFIED
+                        - OPENAI
+                        - GEMINI
+                    type: string
+                    format: enum
+                endpoint:
+                    type: string
+                apiKey:
+                    writeOnly: true
+                    type: string
+                    description: api_key is write-only and is never returned by GetInstanceSetting.
+                apiKeySet:
+                    readOnly: true
+                    type: boolean
+                    description: api_key_set indicates whether an API key is stored for this provider.
+                apiKeyHint:
+                    readOnly: true
+                    type: string
+                    description: api_key_hint is a masked hint for the stored API key.
+            description: AIProviderConfig represents one callable AI provider connection.
+        InstanceSetting_AISetting:
+            type: object
+            properties:
+                providers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/InstanceSetting_AIProviderConfig'
+                    description: providers is the list of AI provider configurations available instance-wide.
+            description: AI provider configuration settings.
         InstanceSetting_GeneralSetting:
             type: object
             properties:
@@ -2199,12 +2697,6 @@ components:
         InstanceSetting_MemoRelatedSetting:
             type: object
             properties:
-                disallowPublicVisibility:
-                    type: boolean
-                    description: disallow_public_visibility disallows set memo as public visibility.
-                displayWithUpdateTime:
-                    type: boolean
-                    description: display_with_update_time orders and displays memo with update time.
                 contentLengthLimit:
                     type: integer
                     description: content_length_limit is the limit of content length. Unit is byte.
@@ -2218,6 +2710,12 @@ components:
                         type: string
                     description: reactions is the list of reactions.
             description: Memo-related instance settings and policies.
+        InstanceSetting_NotificationSetting:
+            type: object
+            properties:
+                email:
+                    $ref: '#/components/schemas/NotificationSetting_EmailSetting'
+            description: Notification transport configuration.
         InstanceSetting_StorageSetting:
             type: object
             properties:
@@ -2243,20 +2741,66 @@ components:
                         - $ref: '#/components/schemas/StorageSetting_S3Config'
                     description: The S3 config.
             description: Storage configuration settings for instance attachments.
-        ListActivitiesResponse:
+        InstanceSetting_TagMetadata:
             type: object
             properties:
-                activities:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Activity'
-                    description: The activities.
-                nextPageToken:
+                backgroundColor:
+                    allOf:
+                        - $ref: '#/components/schemas/Color'
+                    description: |-
+                        Optional background color for the tag label.
+                         When unset, the default tag color is used.
+                blurContent:
+                    type: boolean
+                    description: Whether memos with this tag should have their content blurred.
+            description: Metadata for a tag.
+        InstanceSetting_TagsSetting:
+            type: object
+            properties:
+                tags:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/InstanceSetting_TagMetadata'
+                    description: |-
+                        Map of tag name pattern to tag metadata.
+                         Each key is treated as an anchored regular expression (^pattern$),
+                         so a single entry like "project/.*" matches all tags under that prefix.
+                         Exact tag names are also valid (they are trivially valid regex patterns).
+            description: Tag metadata configuration.
+        LinkMetadata:
+            type: object
+            properties:
+                url:
+                    type: string
+                    description: The original link URL.
+                title:
+                    type: string
+                    description: The link title.
+                description:
+                    type: string
+                    description: The link description.
+                image:
+                    type: string
+                    description: The link image URL.
+        LinkedIdentity:
+            type: object
+            properties:
+                name:
                     type: string
                     description: |-
-                        A token to retrieve the next page of results.
-                         Pass this value in the page_token field in the subsequent call to `ListActivities`
-                         method to retrieve the next page of results.
+                        The resource name of the linked identity.
+                         Format: users/{user}/linkedIdentities/{linked_identity}
+                idpName:
+                    readOnly: true
+                    type: string
+                    description: |-
+                        The resource name of the identity provider.
+                         Format: identity-providers/{uid}
+                externUid:
+                    readOnly: true
+                    type: string
+                    description: The external user identifier from the identity provider.
+            description: LinkedIdentity represents an SSO identity linked to a user account.
         ListAllUserStatsResponse:
             type: object
             properties:
@@ -2290,6 +2834,14 @@ components:
                     items:
                         $ref: '#/components/schemas/IdentityProvider'
                     description: The list of identity providers.
+        ListLinkedIdentitiesResponse:
+            type: object
+            properties:
+                linkedIdentities:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/LinkedIdentity'
+                    description: The list of linked identities.
         ListMemoAttachmentsResponse:
             type: object
             properties:
@@ -2342,6 +2894,14 @@ components:
                 nextPageToken:
                     type: string
                     description: A token for the next page of results.
+        ListMemoSharesResponse:
+            type: object
+            properties:
+                memoShares:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MemoShare'
+                    description: The list of share links.
         ListMemosResponse:
             type: object
             properties:
@@ -2482,10 +3042,6 @@ components:
                         The last update timestamp.
                          If not set on creation, the server will set it to the current time.
                     format: date-time
-                displayTime:
-                    type: string
-                    description: The display timestamp of the memo.
-                    format: date-time
                 content:
                     type: string
                     description: Required. The content of the memo in Markdown format.
@@ -2579,6 +3135,26 @@ components:
                     type: string
                     description: Output only. The snippet of the memo content. Plain text only.
             description: Memo reference in relations.
+        MemoShare:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: |-
+                        The resource name of the share. Format: memos/{memo}/shares/{share}
+                         The {share} segment is the opaque token used in the share URL.
+                createTime:
+                    readOnly: true
+                    type: string
+                    description: Output only. When this share link was created.
+                    format: date-time
+                expireTime:
+                    type: string
+                    description: |-
+                        Optional. When set, the share link stops working after this time.
+                         If unset, the link never expires.
+                    format: date-time
+            description: MemoShare is an access grant that permits read-only access to a memo via an opaque bearer token.
         Memo_Property:
             type: object
             properties:
@@ -2590,7 +3166,59 @@ components:
                     type: boolean
                 hasIncompleteTasks:
                     type: boolean
+                title:
+                    type: string
+                    description: The title extracted from the first H1 heading, if present.
             description: Computed properties of a memo.
+        MotionMedia:
+            type: object
+            properties:
+                family:
+                    enum:
+                        - MOTION_MEDIA_FAMILY_UNSPECIFIED
+                        - APPLE_LIVE_PHOTO
+                        - ANDROID_MOTION_PHOTO
+                    type: string
+                    format: enum
+                role:
+                    enum:
+                        - MOTION_MEDIA_ROLE_UNSPECIFIED
+                        - STILL
+                        - VIDEO
+                        - CONTAINER
+                    type: string
+                    format: enum
+                groupId:
+                    type: string
+                presentationTimestampUs:
+                    type: string
+                hasEmbeddedVideo:
+                    type: boolean
+        NotificationSetting_EmailSetting:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                smtpHost:
+                    type: string
+                smtpPort:
+                    type: integer
+                    format: int32
+                smtpUsername:
+                    type: string
+                smtpPassword:
+                    type: string
+                fromEmail:
+                    type: string
+                fromName:
+                    type: string
+                replyTo:
+                    type: string
+                useTls:
+                    type: boolean
+                useSsl:
+                    type: boolean
+            description: Email delivery configuration for notifications.
         OAuth2Config:
             type: object
             properties:
@@ -2724,7 +3352,7 @@ components:
                     type: string
                     description: |-
                         The resource name of the shortcut.
-                         Format: users/{user}/shortcuts/{shortcut}
+                         Format: users/{username}/shortcuts/{shortcut}
                 title:
                     type: string
                     description: The title of the shortcut.
@@ -2757,15 +3385,16 @@ components:
             description: Nested message for password-based authentication credentials.
         SignInRequest_SSOCredentials:
             required:
-                - idpId
+                - idpName
                 - code
                 - redirectUri
             type: object
             properties:
-                idpId:
-                    type: integer
-                    description: The ID of the SSO provider.
-                    format: int32
+                idpName:
+                    type: string
+                    description: |-
+                        The resource name of the SSO provider.
+                         Format: identity-providers/{uid}
                 code:
                     type: string
                     description: The authorization code from the SSO provider.
@@ -2830,6 +3459,56 @@ components:
             description: |-
                 S3 configuration for cloud storage backend.
                  Reference: https://developers.cloudflare.com/r2/examples/aws/aws-sdk-go/
+        TranscribeRequest:
+            required:
+                - providerId
+                - config
+                - audio
+            type: object
+            properties:
+                providerId:
+                    type: string
+                    description: Required. The instance AI provider ID to use.
+                config:
+                    allOf:
+                        - $ref: '#/components/schemas/TranscriptionConfig'
+                    description: Required. Transcription options.
+                audio:
+                    allOf:
+                        - $ref: '#/components/schemas/TranscriptionAudio'
+                    description: Required. Audio input.
+        TranscribeResponse:
+            type: object
+            properties:
+                text:
+                    type: string
+                    description: The transcribed text.
+        TranscriptionAudio:
+            type: object
+            properties:
+                content:
+                    writeOnly: true
+                    type: string
+                    description: Inline audio bytes.
+                    format: bytes
+                uri:
+                    type: string
+                    description: URI for audio content. Reserved for future use.
+                filename:
+                    type: string
+                    description: Optional. The uploaded filename.
+                contentType:
+                    type: string
+                    description: Optional. The MIME type of the input audio.
+        TranscriptionConfig:
+            type: object
+            properties:
+                prompt:
+                    type: string
+                    description: Optional. A prompt to improve transcription quality.
+                language:
+                    type: string
+                    description: Optional. The language of the input audio.
         UpsertMemoReactionRequest:
             required:
                 - name
@@ -2917,6 +3596,11 @@ components:
                     description: |-
                         The sender of the notification.
                          Format: users/{user}
+                senderUser:
+                    readOnly: true
+                    allOf:
+                        - $ref: '#/components/schemas/User'
+                    description: The sender user details.
                 status:
                     enum:
                         - STATUS_UNSPECIFIED
@@ -2935,13 +3619,56 @@ components:
                     enum:
                         - TYPE_UNSPECIFIED
                         - MEMO_COMMENT
+                        - MEMO_MENTION
                     type: string
                     description: The type of the notification.
                     format: enum
-                activityId:
-                    type: integer
-                    description: The activity ID associated with this notification.
-                    format: int32
+                memoComment:
+                    readOnly: true
+                    allOf:
+                        - $ref: '#/components/schemas/UserNotification_MemoCommentPayload'
+                memoMention:
+                    readOnly: true
+                    allOf:
+                        - $ref: '#/components/schemas/UserNotification_MemoMentionPayload'
+        UserNotification_MemoCommentPayload:
+            type: object
+            properties:
+                memo:
+                    type: string
+                    description: |-
+                        The memo name of comment.
+                         Format: memos/{memo}
+                relatedMemo:
+                    type: string
+                    description: |-
+                        The name of related memo.
+                         Format: memos/{memo}
+                memoSnippet:
+                    type: string
+                    description: Preview text of the comment memo.
+                relatedMemoSnippet:
+                    type: string
+                    description: Preview text of the related memo.
+        UserNotification_MemoMentionPayload:
+            type: object
+            properties:
+                memo:
+                    type: string
+                    description: |-
+                        The memo that contains the mention.
+                         Format: memos/{memo}
+                relatedMemo:
+                    type: string
+                    description: |-
+                        The related parent memo when the mention was created in a comment.
+                         Format: memos/{memo}
+                memoSnippet:
+                    type: string
+                    description: Preview text of the memo that contains the mention.
+                relatedMemoSnippet:
+                    type: string
+                    description: Preview text of the related parent memo.
         UserSetting:
             type: object
             properties:
@@ -2949,8 +3676,8 @@ components:
                     type: string
                     description: |-
                         The name of the user setting.
-                         Format: users/{user}/settings/{setting}, {setting} is the key for the setting.
-                         For example, "users/123/settings/GENERAL" for general settings.
+                         Format: users/{username}/settings/{setting}, {setting} is the key for the setting.
+                         For example, "users/steven/settings/GENERAL" for general settings.
                 generalSetting:
                     $ref: '#/components/schemas/UserSetting_GeneralSetting'
                 webhooksSetting:
@@ -2989,12 +3716,6 @@ components:
                     description: |-
                         The resource name of the user whose stats these are.
                          Format: users/{user}
-                memoDisplayTimestamps:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                    description: The timestamps when the memos were displayed.
                 memoTypeStats:
                     allOf:
                         - $ref: '#/components/schemas/UserStats_MemoTypeStats'
@@ -3005,6 +3726,12 @@ components:
                         type: integer
                         format: int32
                     description: The count of tags.
+                memoCreatedTimestamps:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                    description: The creation timestamps of the user's memos.
                 pinnedMemos:
                     type: array
                     items:
@@ -3057,7 +3784,7 @@ components:
                     format: date-time
             description: UserWebhook represents a webhook owned by a user.
 tags:
-    - name: ActivityService
+    - name: AIService
     - name: AttachmentService
     - name: AuthService
     - name: IdentityProviderService

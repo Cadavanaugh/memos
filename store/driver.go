@@ -13,15 +13,12 @@ type Driver interface {
 
 	IsInitialized(ctx context.Context) (bool, error)
 
-	// Activity model related methods.
-	CreateActivity(ctx context.Context, create *Activity) (*Activity, error)
-	ListActivities(ctx context.Context, find *FindActivity) ([]*Activity, error)
-
 	// Attachment model related methods.
 	CreateAttachment(ctx context.Context, create *Attachment) (*Attachment, error)
 	ListAttachments(ctx context.Context, find *FindAttachment) ([]*Attachment, error)
 	UpdateAttachment(ctx context.Context, update *UpdateAttachment) error
 	DeleteAttachment(ctx context.Context, delete *DeleteAttachment) error
+	DeleteAttachments(ctx context.Context, deletes []*DeleteAttachment) error
 
 	// Memo model related methods.
 	CreateMemo(ctx context.Context, create *Memo) (*Memo, error)
@@ -48,6 +45,7 @@ type Driver interface {
 	// UserSetting model related methods.
 	UpsertUserSetting(ctx context.Context, upsert *UserSetting) (*UserSetting, error)
 	ListUserSettings(ctx context.Context, find *FindUserSetting) ([]*UserSetting, error)
+	DeleteUserSettings(ctx context.Context, delete *DeleteUserSetting) error
 	GetUserByPATHash(ctx context.Context, tokenHash string) (*PATQueryResult, error)
 
 	// IdentityProvider model related methods.
@@ -67,4 +65,15 @@ type Driver interface {
 	ListReactions(ctx context.Context, find *FindReaction) ([]*Reaction, error)
 	GetReaction(ctx context.Context, find *FindReaction) (*Reaction, error)
 	DeleteReaction(ctx context.Context, delete *DeleteReaction) error
+
+	// MemoShare model related methods.
+	CreateMemoShare(ctx context.Context, create *MemoShare) (*MemoShare, error)
+	ListMemoShares(ctx context.Context, find *FindMemoShare) ([]*MemoShare, error)
+	GetMemoShare(ctx context.Context, find *FindMemoShare) (*MemoShare, error)
+	DeleteMemoShare(ctx context.Context, delete *DeleteMemoShare) error
+
+	// UserIdentity model related methods.
+	CreateUserIdentity(ctx context.Context, create *UserIdentity) (*UserIdentity, error)
+	ListUserIdentities(ctx context.Context, find *FindUserIdentity) ([]*UserIdentity, error)
+	DeleteUserIdentities(ctx context.Context, delete *DeleteUserIdentity) error
 }
