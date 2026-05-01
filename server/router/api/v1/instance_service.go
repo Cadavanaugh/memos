@@ -30,6 +30,7 @@ func (s *APIV1Service) GetInstanceProfile(ctx context.Context, _ *v1pb.GetInstan
 		Demo:        s.Profile.Demo,
 		InstanceUrl: s.Profile.InstanceURL,
 		Admin:       admin, // nil when not initialized
+		Commit:      s.Profile.Commit,
 	}
 	return instanceProfile, nil
 }
@@ -325,7 +326,6 @@ func convertInstanceMemoRelatedSettingFromStore(setting *storepb.InstanceMemoRel
 		return nil
 	}
 	return &v1pb.InstanceSetting_MemoRelatedSetting{
-		DisplayWithUpdateTime: setting.DisplayWithUpdateTime,
 		ContentLengthLimit:    setting.ContentLengthLimit,
 		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
 		Reactions:             setting.Reactions,
@@ -337,7 +337,6 @@ func convertInstanceMemoRelatedSettingToStore(setting *v1pb.InstanceSetting_Memo
 		return nil
 	}
 	return &storepb.InstanceMemoRelatedSetting{
-		DisplayWithUpdateTime: setting.DisplayWithUpdateTime,
 		ContentLengthLimit:    setting.ContentLengthLimit,
 		EnableDoubleClickEdit: setting.EnableDoubleClickEdit,
 		Reactions:             setting.Reactions,

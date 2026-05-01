@@ -30,6 +30,13 @@ import (
 
 const maxBatchGetUsers = 100
 
+func validatePassword(password string) error {
+	if password == "" {
+		return errors.New("password must not be empty")
+	}
+	return nil
+}
+
 func (s *APIV1Service) ListUsers(ctx context.Context, request *v1pb.ListUsersRequest) (*v1pb.ListUsersResponse, error) {
 	currentUser, err := s.fetchCurrentUser(ctx)
 	if err != nil {
@@ -71,21 +78,23 @@ func (s *APIV1Service) ListUsers(ctx context.Context, request *v1pb.ListUsersReq
 	return response, nil
 }
 
-func normalizeBatchUsernames(usernames []string) []string {
+func normalizeBatchUsernames(usernames []string) ([]string, int) {
 	uniqueUsernames := make([]string, 0, len(usernames))
 	seen := make(map[string]struct{}, len(usernames))
+	nonEmptyCount := 0
 	for _, username := range usernames {
 		username = strings.TrimSpace(username)
-		if validateUsername(username) != nil {
+		if username == "" {
 			continue
 		}
+		nonEmptyCount++
 		if _, ok := seen[username]; ok {
 			continue
 		}
 		seen[username] = struct{}{}
 		uniqueUsernames = append(uniqueUsernames, username)
 	}
-	return uniqueUsernames
+	return uniqueUsernames, nonEmptyCount
 }
 
 func (s *APIV1Service) BatchGetUsers(ctx context.Context, request *v1pb.BatchGetUsersRequest) (*v1pb.BatchGetUsersResponse, error) {
@@ -93,8 +102,8 @@ func (s *APIV1Service) BatchGetUsers(ctx context.Context, request *v1pb.BatchGet
 		return &v1pb.BatchGetUsersResponse{Users: []*v1pb.User{}}, nil
 	}
 
-	uniqueUsernames := normalizeBatchUsernames(request.Usernames)
-	if len(uniqueUsernames) > maxBatchGetUsers {
+	uniqueUsernames, nonEmptyUsernameCount := normalizeBatchUsernames(request.Usernames)
+	if nonEmptyUsernameCount > maxBatchGetUsers {
 		return nil, status.Errorf(codes.InvalidArgument, "too many usernames (max %d)", maxBatchGetUsers)
 	}
 
@@ -137,18 +146,54 @@ func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserR
 	// Get current user (might be nil for unauthenticated requests)
 	currentUser, _ := s.fetchCurrentUser(ctx)
 
-	// Check if there are any existing users (for first-time setup detection)
-	limitOne := 1
-	allUsers, err := s.Store.ListUsers(ctx, &store.FindUser{Limit: &limitOne})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to list users: %v", err)
+	if request.User == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "user is required")
 	}
-	isFirstUser := len(allUsers) == 0
+	if err := validateWritableUsername(request.User.Username); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid username: %s", request.User.Username)
+	}
+	if err := validatePassword(request.User.Password); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
 
-	// Check registration settings FIRST (unless it's the very first user)
-	if !isFirstUser {
+	roleToAssign := store.RoleUser
+	if currentUser != nil && currentUser.Role == store.RoleAdmin {
+		// Authenticated ADMIN user can create users with any role specified in request
+		if request.User.Role != v1pb.User_ROLE_UNSPECIFIED {
+			roleToAssign = convertUserRoleToStore(request.User.Role)
+		}
+	} else {
+		limitOne := 1
+		allUsers, err := s.Store.ListUsers(ctx, &store.FindUser{Limit: &limitOne})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to list users: %v", err)
+		}
+		if len(allUsers) == 0 {
+			roleToAssign = store.RoleAdmin
+			if !request.ValidateOnly {
+				passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.User.Password), bcrypt.DefaultCost)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "failed to generate password hash: %v", err)
+				}
+				user, created, err := s.Store.CreateUserIfNoUsers(ctx, &store.User{
+					Username:     request.User.Username,
+					Role:         store.RoleAdmin,
+					Email:        request.User.Email,
+					Nickname:     request.User.DisplayName,
+					PasswordHash: string(passwordHash),
+				})
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "failed to create first user: %v", err)
+				}
+				if created {
+					return convertUserFromStore(user, user), nil
+				}
+				roleToAssign = store.RoleUser
+			}
+		}
+
 		// Only allow user registration if it is enabled in the settings, or if the user is a superuser
-		if currentUser == nil || !isSuperUser(currentUser) {
+		if roleToAssign != store.RoleAdmin {
 			instanceGeneralSetting, err := s.Store.GetInstanceGeneralSetting(ctx)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to get instance general setting, error: %v", err)
@@ -156,28 +201,10 @@ func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserR
 			if instanceGeneralSetting.DisallowUserRegistration {
 				return nil, status.Errorf(codes.PermissionDenied, "user registration is not allowed")
 			}
+			if instanceGeneralSetting.DisallowPasswordAuth {
+				return nil, status.Errorf(codes.PermissionDenied, "password signup is not allowed")
+			}
 		}
-	}
-
-	// Determine the role to assign
-	var roleToAssign store.Role
-	if isFirstUser {
-		// First-time setup: create the first user as ADMIN (no authentication required)
-		roleToAssign = store.RoleAdmin
-	} else if currentUser != nil && currentUser.Role == store.RoleAdmin {
-		// Authenticated ADMIN user can create users with any role specified in request
-		if request.User.Role != v1pb.User_ROLE_UNSPECIFIED {
-			roleToAssign = convertUserRoleToStore(request.User.Role)
-		} else {
-			roleToAssign = store.RoleUser
-		}
-	} else {
-		// Unauthenticated or non-ADMIN users can only create normal users
-		roleToAssign = store.RoleUser
-	}
-
-	if err := validateUsername(request.User.Username); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid username: %s", request.User.Username)
 	}
 
 	// If validate_only is true, just validate without creating
@@ -211,6 +238,9 @@ func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserR
 }
 
 func (s *APIV1Service) UpdateUser(ctx context.Context, request *v1pb.UpdateUserRequest) (*v1pb.User, error) {
+	if request.User == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "user is required")
+	}
 	if request.UpdateMask == nil || len(request.UpdateMask.Paths) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "update mask is empty")
 	}
@@ -253,7 +283,7 @@ func (s *APIV1Service) UpdateUser(ctx context.Context, request *v1pb.UpdateUserR
 			if instanceGeneralSetting.DisallowChangeUsername {
 				return nil, status.Errorf(codes.PermissionDenied, "permission denied: disallow change username")
 			}
-			if err := validateUsername(request.User.Username); err != nil {
+			if err := validateWritableUsername(request.User.Username); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "invalid username: %s", request.User.Username)
 			}
 			update.Username = &request.User.Username
@@ -294,6 +324,9 @@ func (s *APIV1Service) UpdateUser(ctx context.Context, request *v1pb.UpdateUserR
 			role := convertUserRoleToStore(request.User.Role)
 			update.Role = &role
 		case "password":
+			if err := validatePassword(request.User.Password); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+			}
 			passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.User.Password), bcrypt.DefaultCost)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "failed to generate password hash: %v", err)
@@ -301,6 +334,9 @@ func (s *APIV1Service) UpdateUser(ctx context.Context, request *v1pb.UpdateUserR
 			passwordHashStr := string(passwordHash)
 			update.PasswordHash = &passwordHashStr
 		case "state":
+			if currentUser.Role != store.RoleAdmin {
+				return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+			}
 			rowStatus := convertStateToStore(request.User.State)
 			update.RowStatus = &rowStatus
 		default:
@@ -335,11 +371,38 @@ func (s *APIV1Service) DeleteUser(ctx context.Context, request *v1pb.DeleteUserR
 	if currentUser.ID != userID && currentUser.Role != store.RoleAdmin {
 		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
 	}
+	isSelfDelete := currentUser.ID == userID
 
-	if err := s.Store.DeleteUser(ctx, &store.DeleteUser{
+	attachments, err := s.Store.DeleteUserCompletely(ctx, &store.DeleteUser{
 		ID: user.ID,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete user: %v", err)
+	}
+	var attachmentCleanupErr error
+	failedAttachmentIDs := make([]int32, 0)
+	for _, attachment := range attachments {
+		if err := s.Store.DeleteAttachmentStorage(ctx, attachment); err != nil {
+			slog.Warn("failed to delete attachment storage after deleting user", "user_id", userID, "attachment_id", attachment.ID, "error", err)
+			failedAttachmentIDs = append(failedAttachmentIDs, attachment.ID)
+			if attachmentCleanupErr == nil {
+				attachmentCleanupErr = err
+			}
+		}
+	}
+	if isSelfDelete {
+		if err := s.clearAuthCookies(ctx); err != nil {
+			slog.Warn("failed to clear auth cookies after self delete", "user_id", userID, "error", err)
+		}
+	}
+	if attachmentCleanupErr != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			"user was deleted but attachment storage cleanup failed for %d attachment(s), first attachment_id=%d: %v",
+			len(failedAttachmentIDs),
+			failedAttachmentIDs[0],
+			attachmentCleanupErr,
+		)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -388,6 +451,27 @@ func (s *APIV1Service) resolveUserAndWebhookIDFromName(ctx context.Context, name
 		return nil, "", err
 	}
 	return user, parts[3], nil
+}
+
+func (s *APIV1Service) resolveUserAndLinkedIdentityProviderFromName(ctx context.Context, name string) (*store.User, string, error) {
+	parts := strings.Split(name, "/")
+	if len(parts) != 4 || parts[0] != "users" || parts[2] != "linkedIdentities" {
+		return nil, "", errors.Errorf("invalid linked identity name: %s", name)
+	}
+
+	user, err := s.resolveUserFromName(ctx, BuildUserName(parts[1]))
+	if err != nil {
+		return nil, "", err
+	}
+	return user, parts[3], nil
+}
+
+func convertLinkedIdentityFromStore(user *store.User, identity *store.UserIdentity) *v1pb.LinkedIdentity {
+	return &v1pb.LinkedIdentity{
+		Name:      fmt.Sprintf("%s/linkedIdentities/%s", BuildUserName(user.Username), identity.Provider),
+		IdpName:   IdentityProviderNamePrefix + identity.Provider,
+		ExternUid: identity.ExternUID,
+	}
 }
 
 func (s *APIV1Service) resolveUserAndNotificationIDFromName(ctx context.Context, name string) (*store.User, int32, error) {
@@ -597,6 +681,143 @@ func (s *APIV1Service) ListUserSettings(ctx context.Context, request *v1pb.ListU
 	return response, nil
 }
 
+func (s *APIV1Service) authorizeUserResourceAccess(ctx context.Context, userID int32, allowAdmin bool) (*store.User, error) {
+	currentUser, err := s.fetchCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if currentUser.ID == userID || (allowAdmin && currentUser.Role == store.RoleAdmin) {
+		return currentUser, nil
+	}
+	return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+}
+
+func (s *APIV1Service) ListLinkedIdentities(ctx context.Context, request *v1pb.ListLinkedIdentitiesRequest) (*v1pb.ListLinkedIdentitiesResponse, error) {
+	user, err := s.resolveUserFromName(ctx, request.Parent)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid parent: %v", err)
+	}
+	userID := user.ID
+
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, true); err != nil {
+		return nil, err
+	}
+
+	identities, err := s.Store.ListUserIdentities(ctx, &store.FindUserIdentity{UserID: &userID})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list linked identities: %v", err)
+	}
+
+	response := &v1pb.ListLinkedIdentitiesResponse{
+		LinkedIdentities: []*v1pb.LinkedIdentity{},
+	}
+	for _, identity := range identities {
+		response.LinkedIdentities = append(response.LinkedIdentities, convertLinkedIdentityFromStore(user, identity))
+	}
+	return response, nil
+}
+
+func (s *APIV1Service) CreateLinkedIdentity(ctx context.Context, request *v1pb.CreateLinkedIdentityRequest) (*v1pb.LinkedIdentity, error) {
+	user, err := s.resolveUserFromName(ctx, request.Parent)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid parent: %v", err)
+	}
+
+	currentUser, err := s.fetchCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user not authenticated")
+	}
+	if currentUser.ID != user.ID {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
+	identityProvider, userInfo, err := s.resolveSSOIdentity(ctx, request.IdpName, request.Code, request.RedirectUri, request.CodeVerifier)
+	if err != nil {
+		return nil, err
+	}
+	provider := identityProvider.Uid
+	externUID := userInfo.Identifier
+
+	if _, err := s.bindSSOIdentityToUser(ctx, currentUser, provider, externUID); err != nil {
+		return nil, err
+	}
+
+	identity, err := s.Store.GetUserIdentity(ctx, &store.FindUserIdentity{
+		UserID:   &currentUser.ID,
+		Provider: &provider,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get linked identity: %v", err)
+	}
+	if identity == nil {
+		return nil, status.Errorf(codes.Internal, "linked identity not found after creation")
+	}
+
+	return convertLinkedIdentityFromStore(user, identity), nil
+}
+
+func (s *APIV1Service) GetLinkedIdentity(ctx context.Context, request *v1pb.GetLinkedIdentityRequest) (*v1pb.LinkedIdentity, error) {
+	user, provider, err := s.resolveUserAndLinkedIdentityProviderFromName(ctx, request.Name)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked identity name: %v", err)
+	}
+	userID := user.ID
+
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, true); err != nil {
+		return nil, err
+	}
+
+	identity, err := s.Store.GetUserIdentity(ctx, &store.FindUserIdentity{
+		UserID:   &userID,
+		Provider: &provider,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get linked identity: %v", err)
+	}
+	if identity == nil {
+		return nil, status.Errorf(codes.NotFound, "linked identity not found")
+	}
+
+	return convertLinkedIdentityFromStore(user, identity), nil
+}
+
+func (s *APIV1Service) DeleteLinkedIdentity(ctx context.Context, request *v1pb.DeleteLinkedIdentityRequest) (*emptypb.Empty, error) {
+	user, provider, err := s.resolveUserAndLinkedIdentityProviderFromName(ctx, request.Name)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid linked identity name: %v", err)
+	}
+	userID := user.ID
+
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, true); err != nil {
+		return nil, err
+	}
+
+	existing, err := s.Store.GetUserIdentity(ctx, &store.FindUserIdentity{
+		UserID:   &userID,
+		Provider: &provider,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get linked identity: %v", err)
+	}
+	if existing == nil {
+		return nil, status.Errorf(codes.NotFound, "linked identity not found")
+	}
+
+	if err := s.Store.DeleteUserIdentities(ctx, &store.DeleteUserIdentity{
+		UserID:   &userID,
+		Provider: &provider,
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete linked identity: %v", err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
 // ListPersonalAccessTokens retrieves all Personal Access Tokens (PATs) for a user.
 //
 // Personal Access Tokens are used for:
@@ -620,12 +841,8 @@ func (s *APIV1Service) ListPersonalAccessTokens(ctx context.Context, request *v1
 	userID := user.ID
 
 	// Verify permission
-	claims := auth.GetUserClaims(ctx)
-	if claims == nil || claims.UserID != userID {
-		currentUser, _ := s.fetchCurrentUser(ctx)
-		if currentUser == nil || (currentUser.ID != userID && currentUser.Role != store.RoleAdmin) {
-			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
-		}
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, true); err != nil {
+		return nil, err
 	}
 
 	tokens, err := s.Store.GetUserPersonalAccessTokens(ctx, userID)
@@ -675,12 +892,8 @@ func (s *APIV1Service) CreatePersonalAccessToken(ctx context.Context, request *v
 	userID := user.ID
 
 	// Verify permission
-	claims := auth.GetUserClaims(ctx)
-	if claims == nil || claims.UserID != userID {
-		currentUser, _ := s.fetchCurrentUser(ctx)
-		if currentUser == nil || currentUser.ID != userID {
-			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
-		}
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, false); err != nil {
+		return nil, err
 	}
 
 	// Generate PAT
@@ -743,12 +956,8 @@ func (s *APIV1Service) DeletePersonalAccessToken(ctx context.Context, request *v
 	tokenID := parts[3]
 
 	// Verify permission
-	claims := auth.GetUserClaims(ctx)
-	if claims == nil || claims.UserID != userID {
-		currentUser, _ := s.fetchCurrentUser(ctx)
-		if currentUser == nil || currentUser.ID != userID {
-			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
-		}
+	if _, err := s.authorizeUserResourceAccess(ctx, userID, false); err != nil {
+		return nil, err
 	}
 
 	if err := s.Store.RemoveUserPersonalAccessToken(ctx, userID, tokenID); err != nil {
@@ -1085,6 +1294,10 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, user *store.
 		}
 
 		switch key {
+		case storepb.UserSetting_GENERAL:
+			setting.Value = &v1pb.UserSetting_GeneralSetting_{
+				GeneralSetting: getDefaultUserGeneralSetting(),
+			}
 		case storepb.UserSetting_WEBHOOKS:
 			setting.Value = &v1pb.UserSetting_WebhooksSetting_{
 				WebhooksSetting: &v1pb.UserSetting_WebhooksSetting{
@@ -1092,10 +1305,7 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, user *store.
 				},
 			}
 		default:
-			// Default to general setting
-			setting.Value = &v1pb.UserSetting_GeneralSetting_{
-				GeneralSetting: getDefaultUserGeneralSetting(),
-			}
+			return nil
 		}
 		return setting
 	}
@@ -1140,10 +1350,7 @@ func convertUserSettingFromStore(storeSetting *storepb.UserSetting, user *store.
 			},
 		}
 	default:
-		// Default to general setting if unknown key
-		setting.Value = &v1pb.UserSetting_GeneralSetting_{
-			GeneralSetting: getDefaultUserGeneralSetting(),
-		}
+		return nil
 	}
 
 	return setting

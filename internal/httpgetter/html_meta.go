@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/net/html"
@@ -14,7 +15,10 @@ import (
 
 var ErrInternalIP = errors.New("internal IP addresses are not allowed")
 
+const maxHTMLMetaBytes = 512 * 1024
+
 var httpClient = &http.Client{
+	Timeout: 5 * time.Second,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if err := validateURL(req.URL.String()); err != nil {
 			return errors.Wrap(err, "redirect to internal IP")
@@ -51,9 +55,7 @@ func GetHTMLMeta(urlStr string) (*HTMLMeta, error) {
 		return nil, errors.New("not a HTML page")
 	}
 
-	// TODO: limit the size of the response body
-
-	htmlMeta := extractHTMLMeta(response.Body)
+	htmlMeta := extractHTMLMeta(io.LimitReader(response.Body, maxHTMLMetaBytes))
 	enrichSiteMeta(response.Request.URL, htmlMeta)
 	return htmlMeta, nil
 }

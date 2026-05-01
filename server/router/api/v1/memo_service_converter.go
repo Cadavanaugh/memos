@@ -29,30 +29,20 @@ func (s *APIV1Service) convertMemoFromStore(ctx context.Context, memo *store.Mem
 }
 
 func (s *APIV1Service) convertMemoFromStoreWithCreators(ctx context.Context, memo *store.Memo, reactions []*store.Reaction, attachments []*store.Attachment, relations []*v1pb.MemoRelation, creatorMap map[int32]*store.User) (*v1pb.Memo, error) {
-	displayTs := memo.CreatedTs
-	instanceMemoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get instance memo related setting")
-	}
-	if instanceMemoRelatedSetting.DisplayWithUpdateTime {
-		displayTs = memo.UpdatedTs
-	}
-
 	name := fmt.Sprintf("%s%s", MemoNamePrefix, memo.UID)
 	creator := creatorMap[memo.CreatorID]
 	if creator == nil {
 		return nil, errMemoCreatorNotFound
 	}
 	memoMessage := &v1pb.Memo{
-		Name:        name,
-		State:       convertStateFromStore(memo.RowStatus),
-		Creator:     BuildUserName(creator.Username),
-		CreateTime:  timestamppb.New(time.Unix(memo.CreatedTs, 0)),
-		UpdateTime:  timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
-		DisplayTime: timestamppb.New(time.Unix(displayTs, 0)),
-		Content:     memo.Content,
-		Visibility:  convertVisibilityFromStore(memo.Visibility),
-		Pinned:      memo.Pinned,
+		Name:       name,
+		State:      convertStateFromStore(memo.RowStatus),
+		Creator:    BuildUserName(creator.Username),
+		CreateTime: timestamppb.New(time.Unix(memo.CreatedTs, 0)),
+		UpdateTime: timestamppb.New(time.Unix(memo.UpdatedTs, 0)),
+		Content:    memo.Content,
+		Visibility: convertVisibilityFromStore(memo.Visibility),
+		Pinned:     memo.Pinned,
 	}
 	if memo.Payload != nil {
 		memoMessage.Tags = memo.Payload.Tags
@@ -65,10 +55,11 @@ func (s *APIV1Service) convertMemoFromStoreWithCreators(ctx context.Context, mem
 		memoMessage.Parent = &parentName
 	}
 
-	memoMessage.Reactions, err = s.convertReactionsFromStoreWithCreators(ctx, reactions, creatorMap)
+	reactionMessages, err := s.convertReactionsFromStoreWithCreators(ctx, reactions, creatorMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert reactions")
 	}
+	memoMessage.Reactions = reactionMessages
 
 	if relations != nil {
 		memoMessage.Relations = relations
@@ -179,7 +170,7 @@ func convertReactionFromStoreWithCreators(reaction *store.Reaction, creatorsByID
 
 // batchConvertMemoRelations batch-loads relations for a list of memos and returns
 // a map from memo ID to its converted relations. This avoids N+1 queries when listing memos.
-func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*store.Memo) (map[int32][]*v1pb.MemoRelation, error) {
+func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*store.Memo, includeSnippets bool) (map[int32][]*v1pb.MemoRelation, error) {
 	if len(memos) == 0 {
 		return map[int32][]*v1pb.MemoRelation{}, nil
 	}
@@ -202,14 +193,21 @@ func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*s
 		memoIDSet[m.ID] = true
 	}
 
-	// Single batch query to get all relations involving any of these memos.
-	allRelations, err := s.Store.ListMemoRelations(ctx, &store.FindMemoRelation{
-		MemoIDList: memoIDs,
-		MemoFilter: &memoFilter,
+	outgoingRelations, err := s.Store.ListMemoRelations(ctx, &store.FindMemoRelation{
+		SourceMemoIDList: memoIDs,
+		MemoFilter:       &memoFilter,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to batch list memo relations")
+		return nil, errors.Wrap(err, "failed to batch list outgoing memo relations")
 	}
+	incomingRelations, err := s.Store.ListMemoRelations(ctx, &store.FindMemoRelation{
+		RelatedMemoIDList: memoIDs,
+		MemoFilter:        &memoFilter,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to batch list incoming memo relations")
+	}
+	allRelations := mergeMemoRelations(outgoingRelations, incomingRelations)
 
 	// Collect all memo IDs referenced in relations that we need to resolve.
 	neededIDs := make(map[int32]bool)
@@ -220,10 +218,16 @@ func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*s
 
 	// Build ID→UID map from the memos we already have.
 	memoIDToUID := make(map[int32]string, len(memos))
-	memoIDToContent := make(map[int32]string, len(memos))
+	memoIDToSnippet := make(map[int32]string, len(memos))
 	for _, m := range memos {
 		memoIDToUID[m.ID] = m.UID
-		memoIDToContent[m.ID] = m.Content
+		if includeSnippets {
+			snippet, err := s.getMemoContentSnippet(m.Content)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get memo content snippet")
+			}
+			memoIDToSnippet[m.ID] = snippet
+		}
 		delete(neededIDs, m.ID)
 	}
 
@@ -233,13 +237,20 @@ func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*s
 		for id := range neededIDs {
 			extraIDs = append(extraIDs, id)
 		}
-		extraMemos, err := s.Store.ListMemos(ctx, &store.FindMemo{IDList: extraIDs})
+		extraFind := &store.FindMemo{IDList: extraIDs, ExcludeContent: !includeSnippets}
+		extraMemos, err := s.Store.ListMemos(ctx, extraFind)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to batch fetch related memos")
 		}
 		for _, m := range extraMemos {
 			memoIDToUID[m.ID] = m.UID
-			memoIDToContent[m.ID] = m.Content
+			if includeSnippets {
+				snippet, err := s.getMemoContentSnippet(m.Content)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to get related memo content snippet")
+				}
+				memoIDToSnippet[m.ID] = snippet
+			}
 		}
 	}
 
@@ -252,16 +263,14 @@ func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*s
 			continue
 		}
 
-		memoSnippet, _ := s.getMemoContentSnippet(memoIDToContent[r.MemoID])
-		relatedSnippet, _ := s.getMemoContentSnippet(memoIDToContent[r.RelatedMemoID])
 		relation := &v1pb.MemoRelation{
 			Memo: &v1pb.MemoRelation_Memo{
 				Name:    fmt.Sprintf("%s%s", MemoNamePrefix, memoUID),
-				Snippet: memoSnippet,
+				Snippet: memoIDToSnippet[r.MemoID],
 			},
 			RelatedMemo: &v1pb.MemoRelation_Memo{
 				Name:    fmt.Sprintf("%s%s", MemoNamePrefix, relatedUID),
-				Snippet: relatedSnippet,
+				Snippet: memoIDToSnippet[r.RelatedMemoID],
 			},
 			Type: convertMemoRelationTypeFromStore(r.Type),
 		}
@@ -280,11 +289,27 @@ func (s *APIV1Service) batchConvertMemoRelations(ctx context.Context, memos []*s
 
 // loadMemoRelations loads relations for a single memo and converts them to API format.
 func (s *APIV1Service) loadMemoRelations(ctx context.Context, memo *store.Memo) ([]*v1pb.MemoRelation, error) {
-	relationMap, err := s.batchConvertMemoRelations(ctx, []*store.Memo{memo})
+	relationMap, err := s.batchConvertMemoRelations(ctx, []*store.Memo{memo}, true)
 	if err != nil {
 		return nil, err
 	}
 	return relationMap[memo.ID], nil
+}
+
+func mergeMemoRelations(groups ...[]*store.MemoRelation) []*store.MemoRelation {
+	seen := make(map[string]struct{})
+	merged := make([]*store.MemoRelation, 0)
+	for _, relations := range groups {
+		for _, relation := range relations {
+			key := fmt.Sprintf("%d:%d:%s", relation.MemoID, relation.RelatedMemoID, relation.Type)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			merged = append(merged, relation)
+		}
+	}
+	return merged
 }
 
 func convertMemoPropertyFromStore(property *storepb.MemoPayload_Property) *v1pb.Memo_Property {

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/usememos/memos/internal/httpgetter"
 	"github.com/usememos/memos/internal/webhook"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
@@ -23,6 +24,10 @@ import (
 // suppressSSEKey is a context key used to suppress the SSE broadcast from
 // CreateMemo when it is called internally (e.g., from CreateMemoComment).
 type suppressSSEKey struct{}
+
+const maxBatchGetLinkMetadata = 10
+
+var fetchHTMLMeta = httpgetter.GetHTMLMeta
 
 func withSuppressSSE(ctx context.Context) context.Context {
 	return context.WithValue(ctx, suppressSSEKey{}, true)
@@ -54,25 +59,7 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		Visibility: convertVisibilityToStore(request.Memo.Visibility),
 	}
 
-	instanceMemoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get instance memo related setting")
-	}
-
-	// Handle display_time first: if provided, use it to set the appropriate timestamp
-	// based on the instance setting (similar to UpdateMemo logic)
-	// Note: explicit create_time/update_time below will override this if provided
-	if request.Memo.DisplayTime != nil && request.Memo.DisplayTime.IsValid() {
-		displayTs := request.Memo.DisplayTime.AsTime().Unix()
-		if instanceMemoRelatedSetting.DisplayWithUpdateTime {
-			create.UpdatedTs = displayTs
-		} else {
-			create.CreatedTs = displayTs
-		}
-	}
-
-	// Set custom timestamps if provided in the request
-	// These take precedence over display_time
+	// Set custom timestamps if provided in the request.
 	if request.Memo.CreateTime != nil && request.Memo.CreateTime.IsValid() {
 		createdTs := request.Memo.CreateTime.AsTime().Unix()
 		create.CreatedTs = createdTs
@@ -196,7 +183,7 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 			return nil, status.Errorf(codes.InvalidArgument, "invalid order_by: %v", err)
 		}
 	} else {
-		// Default ordering by display_time desc
+		// Default ordering by create_time desc.
 		memoFind.OrderByTimeAsc = false
 	}
 
@@ -216,14 +203,6 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 		} else if *memoFind.CreatorID != currentUser.ID {
 			memoFind.VisibilityList = []store.Visibility{store.Public, store.Protected}
 		}
-	}
-
-	instanceMemoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get instance memo related setting")
-	}
-	if instanceMemoRelatedSetting.DisplayWithUpdateTime {
-		memoFind.OrderByUpdatedTs = true
 	}
 
 	var limit, offset int
@@ -297,19 +276,21 @@ func (s *APIV1Service) ListMemos(ctx context.Context, request *v1pb.ListMemosReq
 	}
 
 	// RELATIONS (batch load to avoid N+1)
-	relationMap, err := s.batchConvertMemoRelations(ctx, memos)
+	relationMap, err := s.batchConvertMemoRelations(ctx, memos, false)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to batch load memo relations")
 	}
-	creatorIDs := make([]int32, 0, len(memos))
+	creatorIDs := make([]int32, 0, len(memos)+len(reactions))
 	for _, memo := range memos {
 		creatorIDs = append(creatorIDs, memo.CreatorID)
+	}
+	for _, reaction := range reactions {
+		creatorIDs = append(creatorIDs, reaction.CreatorID)
 	}
 	creatorMap, err := s.listUsersByID(ctx, creatorIDs)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list memo creators: %v", err)
 	}
-
 	for _, memo := range memos {
 		memoName := fmt.Sprintf("%s%s", MemoNamePrefix, memo.UID)
 		reactions := reactionMap[memoName]
@@ -406,6 +387,52 @@ func (s *APIV1Service) GetMemo(ctx context.Context, request *v1pb.GetMemoRequest
 	return memoMessage, nil
 }
 
+// GetLinkMetadata gets metadata for a link.
+func (*APIV1Service) GetLinkMetadata(_ context.Context, request *v1pb.GetLinkMetadataRequest) (*v1pb.LinkMetadata, error) {
+	return getLinkMetadata(request.GetUrl())
+}
+
+// BatchGetLinkMetadata gets metadata for links.
+func (*APIV1Service) BatchGetLinkMetadata(_ context.Context, request *v1pb.BatchGetLinkMetadataRequest) (*v1pb.BatchGetLinkMetadataResponse, error) {
+	if len(request.Urls) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "urls are required")
+	}
+	if len(request.Urls) > maxBatchGetLinkMetadata {
+		return nil, status.Errorf(codes.InvalidArgument, "too many urls (max %d)", maxBatchGetLinkMetadata)
+	}
+
+	linkMetadata := make([]*v1pb.LinkMetadata, 0, len(request.Urls))
+	for _, url := range request.Urls {
+		metadata, err := getLinkMetadata(url)
+		if err != nil {
+			return nil, err
+		}
+		linkMetadata = append(linkMetadata, metadata)
+	}
+
+	return &v1pb.BatchGetLinkMetadataResponse{
+		LinkMetadata: linkMetadata,
+	}, nil
+}
+
+func getLinkMetadata(inputURL string) (*v1pb.LinkMetadata, error) {
+	url := strings.TrimSpace(inputURL)
+	if url == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "url is required")
+	}
+	htmlMeta, err := fetchHTMLMeta(url)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "failed to fetch link metadata: %v", err)
+	}
+
+	return &v1pb.LinkMetadata{
+		Url:         inputURL,
+		Title:       htmlMeta.Title,
+		Description: htmlMeta.Description,
+		Image:       htmlMeta.Image,
+	}, nil
+}
+
 func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoRequest) (*v1pb.Memo, error) {
 	memoUID, err := ExtractMemoUIDFromName(request.Memo.Name)
 	if err != nil {
@@ -475,16 +502,7 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 			}
 			update.UpdatedTs = &updatedTs
 		} else if path == "display_time" {
-			displayTs := request.Memo.DisplayTime.AsTime().Unix()
-			memoRelatedSetting, err := s.Store.GetInstanceMemoRelatedSetting(ctx)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to get instance memo related setting")
-			}
-			if memoRelatedSetting.DisplayWithUpdateTime {
-				update.UpdatedTs = &displayTs
-			} else {
-				update.CreatedTs = &displayTs
-			}
+			return nil, status.Errorf(codes.InvalidArgument, "display_time is not supported")
 		} else if path == "location" {
 			payload := memo.Payload
 			payload.Location = convertLocationToStore(request.Memo.Location)
@@ -798,19 +816,21 @@ func (s *APIV1Service) ListMemoComments(ctx context.Context, request *v1pb.ListM
 	}
 
 	// RELATIONS (batch load to avoid N+1)
-	relationMap, err := s.batchConvertMemoRelations(ctx, memos)
+	relationMap, err := s.batchConvertMemoRelations(ctx, memos, false)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to batch load memo relations")
 	}
-	creatorIDs := make([]int32, 0, len(memos))
+	creatorIDs := make([]int32, 0, len(memos)+len(reactions))
 	for _, memo := range memos {
 		creatorIDs = append(creatorIDs, memo.CreatorID)
+	}
+	for _, reaction := range reactions {
+		creatorIDs = append(creatorIDs, reaction.CreatorID)
 	}
 	creatorMap, err := s.listUsersByID(ctx, creatorIDs)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list memo creators: %v", err)
 	}
-
 	var memosResponse []*v1pb.Memo
 	for _, m := range memos {
 		memoName := memoIDToNameMap[m.ID]
@@ -927,7 +947,7 @@ func (s *APIV1Service) getMemoContentSnippet(content string) (string, error) {
 
 // parseMemoOrderBy parses the order_by field and sets the appropriate ordering in memoFind.
 // Follows AIP-132: supports comma-separated list of fields with optional "desc" suffix.
-// Example: "pinned desc, display_time desc" or "create_time asc".
+// Example: "pinned desc, create_time desc" or "update_time asc".
 func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) error {
 	if strings.TrimSpace(orderBy) == "" {
 		return errors.New("empty order_by")
@@ -938,6 +958,7 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 
 	// Track if we've seen pinned field.
 	hasPinned := false
+	hasExplicitTimeField := false
 
 	for _, field := range fields {
 		parts := strings.Fields(strings.TrimSpace(field))
@@ -959,16 +980,21 @@ func (*APIV1Service) parseMemoOrderBy(orderBy string, memoFind *store.FindMemo) 
 			hasPinned = true
 			memoFind.OrderByPinned = true
 			// Note: pinned is always DESC (true first) regardless of direction specified.
-		case "display_time", "create_time", "name":
+		case "create_time", "name":
 			// Only set if this is the first time field we encounter.
-			if !memoFind.OrderByUpdatedTs {
+			if !hasExplicitTimeField {
 				memoFind.OrderByTimeAsc = fieldDirection == "asc"
 			}
+			hasExplicitTimeField = true
 		case "update_time":
-			memoFind.OrderByUpdatedTs = true
-			memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			// Only set if this is the first time field we encounter.
+			if !hasExplicitTimeField {
+				memoFind.OrderByUpdatedTs = true
+				memoFind.OrderByTimeAsc = fieldDirection == "asc"
+			}
+			hasExplicitTimeField = true
 		default:
-			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, display_time, create_time, update_time, name", fieldName)
+			return errors.Errorf("unsupported order field: %s, supported fields are: pinned, create_time, update_time, name", fieldName)
 		}
 	}
 

@@ -20,7 +20,7 @@
 
   /* Muted — inline backgrounds (code, skeletons, error panels) */
   --muted: oklch(0.21 0.008 265);
-  --muted-foreground: oklch(0.56 0.005 265);
+  --muted-foreground: oklch(0.76 0.005 265);
 
   /* Accent — hover states, slightly more chromatic than muted to feel interactive */
   --accent: oklch(0.22 0.012 265);

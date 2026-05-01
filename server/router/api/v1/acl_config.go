@@ -29,9 +29,11 @@ var PublicMethods = map[string]struct{}{
 	"/memos.api.v1.IdentityProviderService/ListIdentityProviders": {},
 
 	// Memo Service - public memos (visibility filtering done in service layer)
-	"/memos.api.v1.MemoService/GetMemo":          {},
-	"/memos.api.v1.MemoService/ListMemos":        {},
-	"/memos.api.v1.MemoService/ListMemoComments": {},
+	"/memos.api.v1.MemoService/GetMemo":              {},
+	"/memos.api.v1.MemoService/ListMemos":            {},
+	"/memos.api.v1.MemoService/ListMemoComments":     {},
+	"/memos.api.v1.MemoService/GetLinkMetadata":      {},
+	"/memos.api.v1.MemoService/BatchGetLinkMetadata": {},
 
 	// Memo sharing - share-token endpoints require no authentication
 	"/memos.api.v1.MemoService/GetMemoByShare": {},
